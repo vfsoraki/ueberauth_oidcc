@@ -1,0 +1,74 @@
+---
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
+
+image: hexpm/elixir:1.15.7-erlang-26.0.2-ubuntu-jammy-20230126
+
+before_script:
+  - apt-get update && apt-get install -y git make
+  - mix local.hex --force
+  - mix local.rebar --force
+  - mix deps.get
+
+cache:
+  - key:
+      prefix: "$IMAGE-"
+      files:
+        - .tool-versions
+        - mix.lock
+    paths:
+      - deps
+      - _build
+
+stages:
+  - test
+  - deploy
+
+sast:
+  stage: test
+
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
+.base:
+  image: $IMAGE
+  parallel:
+    matrix:
+      - IMAGE:
+          - hexpm/elixir:1.15.7-erlang-26.0.2-ubuntu-jammy-20230126
+          - hexpm/elixir:1.15.7-erlang-26.1.2-ubuntu-jammy-20230126
+
+dev:
+  stage: test
+  extends: .base
+  variables:
+    DIALYZER_CORE_PATH: _build/
+  script:
+    - mix compile --force --warnings-as-errors
+    - mix format --check-formatted
+    - mix credo --strict
+    - mix dialyzer --format dialyzer
+
+test:
+  stage: test
+  extends: .base
+  script:
+    - mix coveralls.cobertura
+  coverage: /\[TOTAL\]\s+(\d+\.\d+)%/
+  artifacts:
+    when: always
+    reports:
+      junit: _build/test/lib/ueberauth_oidcc/test-junit-report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: cover/cobertura.xml
+
+docs:
+  stage: test
+  script:
+    - mix docs
