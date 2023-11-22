@@ -1,6 +1,6 @@
 # UeberauthOidcc
 
-**TODO: Add description**
+Implementation of [Ueberauth.Strategy](https://hexdocs.pm/ueberauth/Ueberauth.Strategy.html) based on the [Oidcc](https://hexdocs.pm/oidcc/readme.html) library.
 
 ## Installation
 
@@ -34,7 +34,7 @@ See
 
 2. Add the Ueberauth strategy to your configuration.
 
-See [Ueberauth](https://hexdocs.pm/ueberauth/readme.html#configuring-providers) for a list of supported options.
+See [Ueberauth](https://hexdocs.pm/ueberauth/readme.html#configuring-providers) and [Oidcc](https://hexdocs.pm/oidcc/Oidcc.html#create_redirect_url/4) for a list of supported options.
 
     ```elixir
     config :ueberauth, Ueberauth,
@@ -98,10 +98,8 @@ and `Ueberauth.Failure` responses. For an example implementation see the
 [Ueberauth Example](https://github.com/ueberauth/ueberauth_example) application.
 
    - `Ueberauth.Auth.Credentials` contains the `access_token` and related fields
-
-   - The `other` map in `Ueberauth.Auth.Credentials` contains `id_token`
-
-   - `Ueberauth.Strategy.Extra` contains the raw claims, userinfo, and tokens 
+     - The `other` map in `Ueberauth.Auth.Credentials` contains `id_token`
+   - `Ueberauth.Auth.Extra` contains the raw claims, userinfo, and options
 
 ## Calling
 
