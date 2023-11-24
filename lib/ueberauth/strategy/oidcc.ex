@@ -205,8 +205,7 @@ defmodule Ueberauth.Strategy.Oidcc do
   def info(conn) do
     userinfo = conn.private[:ueberauth_oidcc_userinfo] || %{}
 
-    claims =
-      Map.merge(conn.private.ueberauth_oidcc_token.id.claims, userinfo)
+    claims = Map.merge(conn.private.ueberauth_oidcc_token.id.claims, userinfo)
 
     urls =
       %{}

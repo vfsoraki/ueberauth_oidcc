@@ -21,15 +21,14 @@ defmodule FakeOidcc do
   def create_redirect_url(provider_configuration_name, client_id, client_secret, opts)
 
   def create_redirect_url(:fake_issuer, "oidc_client" = client_id, :unauthenticated, opts) do
-    params =
-      %{
-        client_id: client_id,
-        redirect_uri: opts[:redirect_uri],
-        state: opts[:state],
-        nonce: opts[:nonce],
-        response_type: opts[:response_type],
-        scope: Enum.join(Map.get(opts, :scopes, []), " ")
-      }
+    params = %{
+      client_id: client_id,
+      redirect_uri: opts[:redirect_uri],
+      state: opts[:state],
+      nonce: opts[:nonce],
+      response_type: opts[:response_type],
+      scope: Enum.join(Map.get(opts, :scopes, []), " ")
+    }
 
     extension =
       case Map.fetch(opts, :url_extension) do
