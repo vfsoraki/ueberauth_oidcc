@@ -256,7 +256,7 @@ defmodule Ueberauth.Strategy.OidccTest do
     end
 
     test "Handle callback from provider with an error retrieving tokens", %{conn: conn} do
-      options = Keyword.put(@default_options, :_retrieve_tokens, false)
+      options = Keyword.put(@default_options, :_retrieve_token, false)
 
       conn = run_request_and_callback(conn, options)
 
@@ -268,10 +268,56 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = error
     end
 
+    test "Handle callback from provider when the ID token is not signed and userinfo is not fetched",
+         %{conn: conn} do
+      options = Keyword.put(@default_options, :_retrieve_token, :alg_none)
+
+      conn = run_request_and_callback(conn, options)
+
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "retrieve_token",
+               message: _
+             } = error
+    end
+
+    test "Handle callback from provider when the ID token is not signed and userinfo is fetched",
+         %{conn: conn} do
+      options =
+        @default_options
+        |> Keyword.put(:userinfo, true)
+        |> Keyword.put(:_retrieve_token, :alg_none)
+
+      conn = run_request_and_callback(conn, options)
+
+      assert %Ueberauth.Auth{
+               uid: "userinfo_sub"
+             } = conn.assigns.ueberauth_auth
+    end
+
     test "Handle callback from provider with an error fetching userinfo", %{conn: conn} do
       options =
         @default_options
         |> Keyword.put(:userinfo, true)
+        |> Keyword.put(:_retrieve_userinfo, false)
+
+      conn = run_request_and_callback(conn, options)
+
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "retrieve_userinfo",
+               message: :no_userinfo
+             } = error
+    end
+
+    test "Handle callback from provider when the ID token is not signed and there is an error fetching userinfo",
+         %{conn: conn} do
+      options =
+        @default_options
+        |> Keyword.put(:userinfo, true)
+        |> Keyword.put(:_retrieve_token, :alg_none)
         |> Keyword.put(:_retrieve_userinfo, false)
 
       conn = run_request_and_callback(conn, options)

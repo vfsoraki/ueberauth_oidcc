@@ -84,8 +84,26 @@ defmodule FakeOidcc do
 
   def retrieve_token(auth_code, provider_configuration_name, client_id, client_secret, opts)
 
-  def retrieve_token(_, _, _, _, %{:_retrieve_tokens => false}) do
+  def retrieve_token(_, _, _, _, %{:_retrieve_token => false}) do
     {:error, :no_tokens}
+  end
+
+  def retrieve_token(
+        auth_code,
+        provider_configuration_name,
+        client_id,
+        client_secret,
+        %{:_retrieve_token => :alg_none} = opts
+      ) do
+    opts = Map.delete(opts, :_retrieve_token)
+
+    case retrieve_token(auth_code, provider_configuration_name, client_id, client_secret, opts) do
+      {:ok, token} ->
+        {:error, {:none_alg_used, token}}
+
+      {:error, _} = e ->
+        e
+    end
   end
 
   def retrieve_token(auth_code, :fake_issuer, "oidc_client", "secret_value", _opts) do

@@ -69,29 +69,38 @@ defmodule Ueberauth.Strategy.Oidcc do
   @doc """
   Handles the callback from the oidc provider.
   """
-  def handle_callback!(conn) do
+  def handle_callback!(%{params: %{"code" => code}} = conn) when is_binary(code) do
     opts = get_options!(conn)
+    conn = put_private(conn, :ueberauth_oidcc_opts, opts)
+    userinfo? = Map.get(opts, :userinfo, false)
 
-    with code when is_binary(code) <- conn.params["code"],
-         {:ok, token} <-
-           opts.module.retrieve_token(
-             code,
-             opts.issuer,
-             opts.client_id,
-             opts.client_secret,
-             opts
-           ) do
-      conn
-      |> put_private(:ueberauth_oidcc_opts, opts)
-      |> put_private(:ueberauth_oidcc_token, token)
-      |> maybe_put_userinfo()
-    else
-      nil ->
-        set_error!(conn, "code", "Query string does not contain field 'code'")
+    maybe_token =
+      case opts.module.retrieve_token(code, opts.issuer, opts.client_id, opts.client_secret, opts) do
+        {:ok, token} ->
+          {:ok, token}
+
+        {:error, {:none_alg_used, token}} when userinfo? ->
+          # the none algorithm is okay for the ID token if we then verify the
+          # userinfo (oidcc-client-test-idtoken-sig-none)
+          {:ok, token}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+
+    case maybe_token do
+      {:ok, token} ->
+        conn
+        |> put_private(:ueberauth_oidcc_token, token)
+        |> maybe_put_userinfo(userinfo?)
 
       {:error, reason} ->
         set_error!(conn, "retrieve_token", reason)
     end
+  end
+
+  def handle_callback!(conn) do
+    set_error!(conn, "code", "Query string does not contain field 'code'")
   end
 
   defp params_from_conn(conn, params) do
@@ -101,26 +110,26 @@ defmodule Ueberauth.Strategy.Oidcc do
     |> Map.merge(params)
   end
 
-  defp maybe_put_userinfo(conn) do
+  defp maybe_put_userinfo(conn, true) do
     opts = conn.private.ueberauth_oidcc_opts
 
-    with true <- Map.get(opts, :userinfo, false),
-         {:ok, userinfo} <-
-           opts.module.retrieve_userinfo(
-             conn.private.ueberauth_oidcc_token,
-             opts.issuer,
-             opts.client_id,
-             opts.client_secret,
-             opts
-           ) do
-      put_private(conn, :ueberauth_oidcc_userinfo, userinfo)
-    else
-      false ->
-        conn
+    case opts.module.retrieve_userinfo(
+           conn.private.ueberauth_oidcc_token,
+           opts.issuer,
+           opts.client_id,
+           opts.client_secret,
+           opts
+         ) do
+      {:ok, userinfo} ->
+        put_private(conn, :ueberauth_oidcc_userinfo, userinfo)
 
       {:error, reason} ->
         set_error!(conn, "retrieve_userinfo", reason)
     end
+  end
+
+  defp maybe_put_userinfo(conn, false) do
+    conn
   end
 
   @doc false
