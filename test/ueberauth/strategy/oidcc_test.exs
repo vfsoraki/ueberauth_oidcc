@@ -268,6 +268,20 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = error
     end
 
+    test "Handle callback from provider when the ID token has an invalid nonce",
+         %{conn: conn} do
+      options = Keyword.put(@default_options, :_retrieve_token, :with_nonce)
+
+      conn = run_request_and_callback(conn, options)
+
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "retrieve_token",
+               message: :invalid_nonce
+             } = error
+    end
+
     test "Handle callback from provider when the ID token is not signed and userinfo is not fetched",
          %{conn: conn} do
       options = Keyword.put(@default_options, :_retrieve_token, :alg_none)

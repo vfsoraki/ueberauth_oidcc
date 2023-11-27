@@ -106,6 +106,27 @@ defmodule FakeOidcc do
     end
   end
 
+  def retrieve_token(
+        auth_code,
+        provider_configuration_name,
+        client_id,
+        client_secret,
+        %{:_retrieve_token => :with_nonce} = opts
+      ) do
+    opts = Map.delete(opts, :_retrieve_token)
+
+    case retrieve_token(auth_code, provider_configuration_name, client_id, client_secret, opts) do
+      {:ok, %{id: %{claims: claims} = id_token} = token} ->
+        claims = Map.put(claims, "nonce", "invalid_nonce")
+        id_token = Map.put(id_token, :claims, claims)
+        token = Map.put(token, :id, id_token)
+        {:ok, token}
+
+      {:error, _} = e ->
+        e
+    end
+  end
+
   def retrieve_token(auth_code, :fake_issuer, "oidc_client", "secret_value", _opts) do
     if auth_code == callback_code() do
       token = %Oidcc.Token{

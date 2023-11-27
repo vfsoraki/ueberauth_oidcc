@@ -76,6 +76,11 @@ defmodule Ueberauth.Strategy.Oidcc do
 
     maybe_token =
       case opts.module.retrieve_token(code, opts.issuer, opts.client_id, opts.client_secret, opts) do
+        {:ok, %{id: %{claims: %{"nonce" => _}}}} ->
+          # we don't provide a nonce, so a reply with a nonce is invalid
+          # (oidcc-client-test-nonce-invalid)
+          {:error, :invalid_nonce}
+
         {:ok, token} ->
           {:ok, token}
 
