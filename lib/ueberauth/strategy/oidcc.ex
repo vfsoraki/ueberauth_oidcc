@@ -202,7 +202,7 @@ defmodule Ueberauth.Strategy.Oidcc do
   """
   def extra(conn) do
     %Extra{
-      raw_info: %{
+      raw_info: %UeberauthOidcc.RawInfo{
         opts: conn.private.ueberauth_oidcc_opts,
         claims: conn.private.ueberauth_oidcc_token.id.claims,
         userinfo: conn.private[:ueberauth_oidcc_userinfo]
