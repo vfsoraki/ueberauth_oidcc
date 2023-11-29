@@ -56,7 +56,7 @@ defmodule UeberauthOidcc.MixProject do
       {:ex_doc, "~> 0.24", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18.0", only: :test, runtime: false},
-      {:oidcc, "~> 3.1.0-beta"},
+      {:oidcc, "~> 3.1.0"},
       {:plug, "~> 1.11"},
       {:ueberauth, "~> 0.10.5"}
     ]
