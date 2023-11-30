@@ -9,41 +9,67 @@ defmodule Ueberauth.Strategy.Oidcc do
   alias Ueberauth.Auth.Extra
   alias Ueberauth.Auth.Info
 
+  @session_key "ueberauth_strategy_oidcc"
+
   @doc """
   Handles the initial authentication request.
   """
   def handle_request!(conn) do
     opts = get_options!(conn)
 
-    params =
-      params_from_conn(conn, %{
+    # Nonce: stored as raw bytes, sent as an encoded SHA512 string. This is the
+    # approach recommended by the spec:
+    # https://openid.net/specs/openid-connect-core-1_0.html#NonceNotes
+    # 64 random bytes is the same size as the SHA512 output.
+    raw_nonce = :crypto.strong_rand_bytes(64)
+
+    # PKCE Verifier: a 43 - 128 character string from the alphabet [A-Z] / [a-z]
+    # / [0-9] / "-" / "." / "_" / "~". The recommendation is to generate a
+    # random sequence and then base64url-encode it.
+    # https://datatracker.ietf.org/doc/html/rfc7636#page-8
+    # 96 random bytes results in an encoded 128 byte verifier.
+    pkce_verifier = url_encode64(:crypto.strong_rand_bytes(96))
+
+    redirect_params =
+      [
         response_type: opts.response_type,
         redirect_uri: opts.redirect_uri,
+        pkce_verifier: pkce_verifier,
+        nonce: url_encode64(:crypto.hash(:sha512, raw_nonce)),
         scopes: opts.scopes
-      })
+      ]
+      |> with_state_param(conn)
+      |> Map.new()
 
     maybe_uri =
       if authorization_endpoint = Map.get(opts, :authorization_endpoint) do
-        params =
-          params
+        redirect_params =
+          redirect_params
           |> Map.put(:client_id, opts.client_id)
-          |> Map.put(:scope, Enum.join(params.scopes, " "))
+          |> Map.put(:scope, Enum.join(redirect_params.scopes, " "))
           |> Map.delete(:scopes)
           |> Map.merge(Map.get(opts, :authorization_params, %{}))
 
-        query = URI.encode_query(params)
+        query = URI.encode_query(redirect_params)
         {:ok, "#{authorization_endpoint}?#{query}"}
       else
-        params =
-          if redirect_params = Map.get(opts, :authorization_params) do
-            Map.put(params, :url_extension, to_url_extension(redirect_params))
-          else
-            params
+        redirect_params =
+          case Map.fetch(opts, :authorization_params) do
+            {:ok, additional} ->
+              Map.put(redirect_params, :url_extension, to_url_extension(additional))
+
+            :error ->
+              redirect_params
           end
 
         case opts do
           %{issuer: _, client_id: _} ->
-            opts.module.create_redirect_url(opts.issuer, opts.client_id, :unauthenticated, params)
+            opts.module.create_redirect_url(
+              opts.issuer,
+              opts.client_id,
+              :unauthenticated,
+              redirect_params
+            )
 
           %{client_id: _} ->
             {:error, :missing_issuer}
@@ -55,7 +81,13 @@ defmodule Ueberauth.Strategy.Oidcc do
 
     case maybe_uri do
       {:ok, uri} ->
-        redirect!(conn, IO.iodata_to_binary(uri))
+        conn
+        |> put_session(@session_key, %{
+          raw_nonce: raw_nonce,
+          pkce_verifier: pkce_verifier,
+          redirect_uri: opts.redirect_uri
+        })
+        |> redirect!(IO.iodata_to_binary(uri))
 
       {:error, reason} ->
         set_error!(
@@ -70,20 +102,44 @@ defmodule Ueberauth.Strategy.Oidcc do
   Handles the callback from the oidc provider.
   """
   def handle_callback!(%{params: %{"code" => code}} = conn) when is_binary(code) do
+    session = get_session(conn, @session_key, %{})
+
     opts = get_options!(conn)
-    conn = put_private(conn, :ueberauth_oidcc_opts, opts)
+
+    conn =
+      conn
+      |> delete_session(@session_key)
+      |> put_private(:ueberauth_oidcc_opts, opts)
+
     userinfo? = Map.get(opts, :userinfo, false)
 
+    nonce =
+      case Map.fetch(session, :raw_nonce) do
+        {:ok, raw_nonce} -> url_encode64(:crypto.hash(:sha512, raw_nonce))
+        :error -> :any
+      end
+
+    retrieve_token_params =
+      Map.merge(
+        opts,
+        %{
+          nonce: nonce,
+          pkce_verifier: Map.get(session, :pkce_verifier, :none)
+        }
+      )
+
     maybe_token =
-      case opts.module.retrieve_token(code, opts.issuer, opts.client_id, opts.client_secret, opts) do
-        {:ok, %{id: %{claims: %{"nonce" => _}}}} ->
-          # we don't provide a nonce, so a reply with a nonce is invalid
-          # (oidcc-client-test-nonce-invalid)
-          {:error, :invalid_nonce}
-
-        {:ok, token} ->
-          {:ok, token}
-
+      with :ok <- verify_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
+           {:ok, token} <-
+             opts.module.retrieve_token(
+               code,
+               opts.issuer,
+               opts.client_id,
+               opts.client_secret,
+               retrieve_token_params
+             ) do
+        {:ok, token}
+      else
         {:error, {:none_alg_used, token}} when userinfo? ->
           # the none algorithm is okay for the ID token if we then verify the
           # userinfo (oidcc-client-test-idtoken-sig-none)
@@ -108,11 +164,24 @@ defmodule Ueberauth.Strategy.Oidcc do
     set_error!(conn, "code", "Query string does not contain field 'code'")
   end
 
-  defp params_from_conn(conn, params) do
-    []
-    |> with_state_param(conn)
-    |> Map.new()
-    |> Map.merge(params)
+  # https://openid.net/specs/openid-financial-api-part-1-1_0.html#public-client
+  # > shall store the redirect URI value in the resource owner's user-agents
+  # > (such as browser) session and compare it with the redirect URI that the
+  # > authorization response was received at, where, if the URIs do not match, the
+  # > client shall terminate the process with error
+  defp verify_redirect_uri(:any, _) do
+    :ok
+  end
+
+  defp verify_redirect_uri(uri, conn) do
+    # generate the current URL but without the query string parameters
+    case Plug.Conn.request_url(%{conn | query_string: ""}) do
+      ^uri ->
+        :ok
+
+      actual_uri ->
+        {:error, {:invalid_redirect_uri, actual_uri}}
+    end
   end
 
   defp maybe_put_userinfo(conn, true) do
@@ -281,5 +350,9 @@ defmodule Ueberauth.Strategy.Oidcc do
 
       {key, value}
     end
+  end
+
+  defp url_encode64(bytes) do
+    Base.url_encode64(bytes, padding: false)
   end
 end

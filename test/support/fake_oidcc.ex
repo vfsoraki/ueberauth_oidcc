@@ -111,24 +111,32 @@ defmodule FakeOidcc do
         provider_configuration_name,
         client_id,
         client_secret,
-        %{:_retrieve_token => :with_nonce} = opts
+        %{:_retrieve_token => :invalid_nonce} = opts
       ) do
     opts = Map.delete(opts, :_retrieve_token)
 
     case retrieve_token(auth_code, provider_configuration_name, client_id, client_secret, opts) do
-      {:ok, %{id: %{claims: claims} = id_token} = token} ->
-        claims = Map.put(claims, "nonce", "invalid_nonce")
-        id_token = Map.put(id_token, :claims, claims)
-        token = Map.put(token, :id, id_token)
-        {:ok, token}
+      {:ok, %{id: %{claims: claims}}} ->
+        {:error, {:missing_claim, {:nonce, Map.get(opts, :nonce), claims}}}
 
       {:error, _} = e ->
         e
     end
   end
 
-  def retrieve_token(auth_code, :fake_issuer, "oidc_client", "secret_value", _opts) do
+  def retrieve_token(auth_code, :fake_issuer, "oidc_client", "secret_value", opts) do
     if auth_code == callback_code() do
+      claims = %{
+        "sub" => "sub_value",
+        "email" => "email_value"
+      }
+
+      claims =
+        case Map.get(opts, :nonce) do
+          b when is_binary(b) -> Map.put(claims, "nonce", b)
+          _ -> claims
+        end
+
       token = %Oidcc.Token{
         access: %Oidcc.Token.Access{
           token: "access_token_value",
@@ -137,10 +145,7 @@ defmodule FakeOidcc do
         },
         id: %Oidcc.Token.Id{
           token: "id_token_value",
-          claims: %{
-            "sub" => "sub_value",
-            "email" => "email_value"
-          }
+          claims: claims
         },
         refresh: %Oidcc.Token.Refresh{
           token: "refresh_token_value"
