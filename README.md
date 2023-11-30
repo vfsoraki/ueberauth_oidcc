@@ -1,5 +1,9 @@
 # UeberauthOidcc
 
+![pipeline status badge](https://gitlab.com/paulswartz/ueberauth_oidcc/badges/main/pipeline.svg)
+![coverage badge](https://gitlab.com/paulswartz/ueberauth_oidcc/badges/main/coverage.svg)
+![latest release badge](https://gitlab.com/paulswartz/ueberauth_oidcc/-/badges/release.svg)
+
 Implementation of [Ueberauth.Strategy](https://hexdocs.pm/ueberauth/Ueberauth.Strategy.html) based on the [Oidcc](https://hexdocs.pm/oidcc/readme.html) library.
 
 ## Installation
