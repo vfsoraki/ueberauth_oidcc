@@ -137,19 +137,26 @@ defmodule FakeOidcc do
           _ -> claims
         end
 
+      refresh =
+        if "offline_access" in opts.scopes do
+          %Oidcc.Token.Refresh{
+            token: "refresh_token_value"
+          }
+        else
+          nil
+        end
+
       token = %Oidcc.Token{
         access: %Oidcc.Token.Access{
           token: "access_token_value",
           # 5 minutes
-          expires: 300
+          expires: Map.get(opts, :_access_token_expires, 300)
         },
         id: %Oidcc.Token.Id{
           token: "id_token_value",
           claims: claims
         },
-        refresh: %Oidcc.Token.Refresh{
-          token: "refresh_token_value"
-        },
+        refresh: refresh,
         scope: ["openid", "profile"]
       }
 

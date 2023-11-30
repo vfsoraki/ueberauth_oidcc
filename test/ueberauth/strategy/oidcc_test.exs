@@ -57,14 +57,36 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = query
     end
 
-    test "Handles an error in an Oidcc request", %{conn: conn} do
+    test "Handles an error in an Oidcc request (invalid issuer)", %{conn: conn} do
+      options = Keyword.merge(@default_options, issuer: :not_valid)
+      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "create_redirect_url",
+               message: ":not_defined"
+             } = error
+    end
+
+    test "Handles an error in an Oidcc request (missing issuer)", %{conn: conn} do
       options = Keyword.delete(@default_options, :issuer)
       conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
                message_key: "create_redirect_url",
-               message: ":missing_issuer"
+               message: "Missing issuer"
+             } = error
+    end
+
+    test "Handles an error in an Oidcc request (missing client_id)", %{conn: conn} do
+      options = Keyword.delete(@default_options, :client_id)
+      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "create_redirect_url",
+               message: "Missing client_id"
              } = error
     end
 
@@ -93,7 +115,10 @@ defmodule Ueberauth.Strategy.OidccTest do
 
     test "handle additional redirect parameters", %{conn: conn} do
       options =
-        Keyword.put(@default_options, :authorization_params, %{"request" => "param&encoded"})
+        Keyword.put(@default_options, :authorization_params, %{
+          "request" => "param&encoded",
+          atom: "value"
+        })
 
       conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
 
@@ -102,7 +127,8 @@ defmodule Ueberauth.Strategy.OidccTest do
       query = URI.decode_query(URI.parse(location).query)
 
       assert %{
-               "request" => "param&encoded"
+               "request" => "param&encoded",
+               "atom" => "value"
              } = query
     end
 
@@ -166,7 +192,7 @@ defmodule Ueberauth.Strategy.OidccTest do
                  expires_at: _,
                  token: "access_token_value",
                  token_type: "Bearer",
-                 refresh_token: "refresh_token_value",
+                 refresh_token: nil,
                  other: %{id_token: "id_token_value"}
                },
                info: %Ueberauth.Auth.Info{email: "email_value"},
@@ -182,6 +208,33 @@ defmodule Ueberauth.Strategy.OidccTest do
 
       assert conn.assigns.ueberauth_auth.credentials.expires_at <
                System.system_time(:second) + 600
+    end
+
+    test "Handle callback with a refresh token (offline_access scope)", %{conn: conn} do
+      options =
+        Keyword.merge(@default_options,
+          scopes: ~w(openid offline_access)
+        )
+
+      conn = run_request_and_callback(conn, options: options)
+
+      assert %Ueberauth.Auth{
+               credentials: %Ueberauth.Auth.Credentials{
+                 refresh_token: "refresh_token_value"
+               }
+             } = conn.assigns.ueberauth_auth
+    end
+
+    test "Handle callback with a non-expiring access token", %{conn: conn} do
+      options = Keyword.put(@default_options, :_access_token_expires, nil)
+
+      conn = run_request_and_callback(conn, options: options)
+
+      assert %Ueberauth.Auth{
+               credentials: %Ueberauth.Auth.Credentials{
+                 expires_at: nil
+               }
+             } = conn.assigns.ueberauth_auth
     end
 
     test "handle callback when there's no user session", %{conn: conn} do

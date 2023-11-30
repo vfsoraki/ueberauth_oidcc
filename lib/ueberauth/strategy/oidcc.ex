@@ -72,10 +72,10 @@ defmodule Ueberauth.Strategy.Oidcc do
             )
 
           %{client_id: _} ->
-            {:error, :missing_issuer}
+            {:error, "Missing issuer"}
 
           %{} ->
-            {:error, :missing_client_id}
+            {:error, "Missing client_id"}
         end
       end
 
@@ -88,6 +88,13 @@ defmodule Ueberauth.Strategy.Oidcc do
           redirect_uri: opts.redirect_uri
         })
         |> redirect!(IO.iodata_to_binary(uri))
+
+      {:error, reason} when is_binary(reason) ->
+        set_error!(
+          conn,
+          "create_redirect_url",
+          reason
+        )
 
       {:error, reason} ->
         set_error!(
