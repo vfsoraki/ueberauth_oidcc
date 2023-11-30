@@ -8,7 +8,8 @@ defmodule Ueberauth.Strategy.OidccTest do
     module: FakeOidcc,
     issuer: :fake_issuer,
     client_id: "oidc_client",
-    client_secret: "secret_value"
+    client_secret: "secret_value",
+    scopes: ~w(openid profile)
   ]
 
   describe "Oidcc Strategy" do
@@ -29,7 +30,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       assert %{
                "redirect_uri" => "http://www.example.com/auth/provider/callback",
                "client_id" => "oidc_client",
-               "scope" => "openid",
+               "scope" => "openid profile",
                "response_type" => "code",
                "state" => _
              } = query
@@ -270,6 +271,19 @@ defmodule Ueberauth.Strategy.OidccTest do
       assert %Ueberauth.Failure.Error{
                message_key: "retrieve_token",
                message: {:invalid_redirect_uri, "http://www.example.com/auth/invalid/callback"}
+             } = error
+    end
+
+    test "Handle callback from provider who returns too many scopes", %{conn: conn} do
+      options = Keyword.put(@default_options, :scopes, ~w(openid))
+
+      conn = run_request_and_callback(conn, options: options)
+
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "retrieve_token",
+               message: {:additional_scopes, ~w(profile)}
              } = error
     end
 

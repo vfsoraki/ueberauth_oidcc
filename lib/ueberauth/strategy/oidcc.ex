@@ -149,12 +149,12 @@ defmodule Ueberauth.Strategy.Oidcc do
           {:error, reason}
       end
 
-    case maybe_token do
-      {:ok, token} ->
-        conn
-        |> put_private(:ueberauth_oidcc_token, token)
-        |> maybe_put_userinfo(userinfo?)
-
+    with {:ok, token} <- maybe_token,
+         :ok <- verify_token_scopes(token, retrieve_token_params.scopes) do
+      conn
+      |> put_private(:ueberauth_oidcc_token, token)
+      |> maybe_put_userinfo(userinfo?)
+    else
       {:error, reason} ->
         set_error!(conn, "retrieve_token", reason)
     end
@@ -181,6 +181,24 @@ defmodule Ueberauth.Strategy.Oidcc do
 
       actual_uri ->
         {:error, {:invalid_redirect_uri, actual_uri}}
+    end
+  end
+
+  defp verify_token_scopes(token, requested_scopes) do
+    # https://openid.net/specs/openid-financial-api-part-1-1_0.html#public-client
+    # # > shall verify that the scope received in the token response is either
+    # > an exact match, or contains a subset of the scope sent in the
+    # > authorization request; and
+    additional_scopes =
+      for scope <- token.scope,
+          scope not in requested_scopes do
+        scope
+      end
+
+    if additional_scopes == [] do
+      :ok
+    else
+      {:error, {:additional_scopes, additional_scopes}}
     end
   end
 
