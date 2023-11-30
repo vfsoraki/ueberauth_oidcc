@@ -41,45 +41,7 @@ defmodule Ueberauth.Strategy.Oidcc do
       |> with_state_param(conn)
       |> Map.new()
 
-    maybe_uri =
-      if authorization_endpoint = Map.get(opts, :authorization_endpoint) do
-        redirect_params =
-          redirect_params
-          |> Map.put(:client_id, opts.client_id)
-          |> Map.put(:scope, Enum.join(redirect_params.scopes, " "))
-          |> Map.delete(:scopes)
-          |> Map.merge(Map.get(opts, :authorization_params, %{}))
-
-        query = URI.encode_query(redirect_params)
-        {:ok, "#{authorization_endpoint}?#{query}"}
-      else
-        redirect_params =
-          case Map.fetch(opts, :authorization_params) do
-            {:ok, additional} ->
-              Map.put(redirect_params, :url_extension, to_url_extension(additional))
-
-            :error ->
-              redirect_params
-          end
-
-        case opts do
-          %{issuer: _, client_id: _} ->
-            opts.module.create_redirect_url(
-              opts.issuer,
-              opts.client_id,
-              :unauthenticated,
-              redirect_params
-            )
-
-          %{client_id: _} ->
-            {:error, "Missing issuer"}
-
-          %{} ->
-            {:error, "Missing client_id"}
-        end
-      end
-
-    case maybe_uri do
+    case create_redirect_url(opts, redirect_params) do
       {:ok, uri} ->
         conn
         |> put_session(@session_key, %{
@@ -179,6 +141,51 @@ defmodule Ueberauth.Strategy.Oidcc do
 
   def handle_callback!(conn) do
     set_error!(conn, "code", "Query string does not contain field 'code'")
+  end
+
+  defp create_redirect_url(opts, redirect_params)
+
+  defp create_redirect_url(
+         %{authorization_endpoint: authorization_endpoint} = opts,
+         redirect_params
+       )
+       when is_binary(authorization_endpoint) do
+    redirect_params =
+      redirect_params
+      |> Map.put(:client_id, opts.client_id)
+      |> Map.put(:scope, Enum.join(redirect_params.scopes, " "))
+      |> Map.delete(:scopes)
+      |> Map.merge(Map.get(opts, :authorization_params, %{}))
+
+    query = URI.encode_query(redirect_params)
+    {:ok, "#{authorization_endpoint}?#{query}"}
+  end
+
+  defp create_redirect_url(opts, redirect_params) do
+    redirect_params =
+      case Map.fetch(opts, :authorization_params) do
+        {:ok, additional} ->
+          Map.put(redirect_params, :url_extension, to_url_extension(additional))
+
+        :error ->
+          redirect_params
+      end
+
+    case opts do
+      %{issuer: _, client_id: _} ->
+        opts.module.create_redirect_url(
+          opts.issuer,
+          opts.client_id,
+          :unauthenticated,
+          redirect_params
+        )
+
+      %{client_id: _} ->
+        {:error, "Missing issuer"}
+
+      %{} ->
+        {:error, "Missing client_id"}
+    end
   end
 
   # https://openid.net/specs/openid-financial-api-part-1-1_0.html#public-client
