@@ -64,7 +64,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
       assert %Ueberauth.Failure.Error{
                message_key: "create_redirect_url",
-               message: :missing_issuer
+               message: ":missing_issuer"
              } = error
     end
 
@@ -259,7 +259,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
       assert %Ueberauth.Failure.Error{
                message_key: "retrieve_token",
-               message: :invalid_code
+               message: ":invalid_code"
              } = error
     end
 
@@ -270,7 +270,8 @@ defmodule Ueberauth.Strategy.OidccTest do
 
       assert %Ueberauth.Failure.Error{
                message_key: "retrieve_token",
-               message: {:invalid_redirect_uri, "http://www.example.com/auth/invalid/callback"}
+               message:
+                 "Redirected to the wrong URI: http://www.example.com/auth/invalid/callback"
              } = error
     end
 
@@ -283,7 +284,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
       assert %Ueberauth.Failure.Error{
                message_key: "retrieve_token",
-               message: {:additional_scopes, ~w(profile)}
+               message: "Unrequested scopes received: profile"
              } = error
     end
 
@@ -296,7 +297,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
       assert %Ueberauth.Failure.Error{
                message_key: "retrieve_token",
-               message: :no_tokens
+               message: ":no_tokens"
              } = error
     end
 
@@ -309,9 +310,10 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "retrieve_token",
-               message: {:missing_claim, {:nonce, _, _}}
+               message_key: "retrieve_token"
              } = error
+
+      assert error.message =~ ":missing_claim, {:nonce"
     end
 
     test "Handle callback from provider when the ID token is not signed and userinfo is not fetched",
@@ -354,7 +356,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
       assert %Ueberauth.Failure.Error{
                message_key: "retrieve_userinfo",
-               message: :no_userinfo
+               message: ":no_userinfo"
              } = error
     end
 
@@ -372,7 +374,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
       assert %Ueberauth.Failure.Error{
                message_key: "retrieve_userinfo",
-               message: :no_userinfo
+               message: ":no_userinfo"
              } = error
     end
 

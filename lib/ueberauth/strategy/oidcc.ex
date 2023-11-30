@@ -93,7 +93,7 @@ defmodule Ueberauth.Strategy.Oidcc do
         set_error!(
           conn,
           "create_redirect_url",
-          reason
+          inspect(reason)
         )
     end
   end
@@ -155,8 +155,18 @@ defmodule Ueberauth.Strategy.Oidcc do
       |> put_private(:ueberauth_oidcc_token, token)
       |> maybe_put_userinfo(userinfo?)
     else
+      {:error, {:additional_scopes, scopes}} ->
+        set_error!(
+          conn,
+          "retrieve_token",
+          "Unrequested scopes received: #{Enum.intersperse(scopes, " ")}"
+        )
+
+      {:error, {:invalid_redirect_uri, uri}} ->
+        set_error!(conn, "retrieve_token", "Redirected to the wrong URI: #{uri}")
+
       {:error, reason} ->
-        set_error!(conn, "retrieve_token", reason)
+        set_error!(conn, "retrieve_token", inspect(reason))
     end
   end
 
@@ -216,7 +226,7 @@ defmodule Ueberauth.Strategy.Oidcc do
         put_private(conn, :ueberauth_oidcc_userinfo, userinfo)
 
       {:error, reason} ->
-        set_error!(conn, "retrieve_userinfo", reason)
+        set_error!(conn, "retrieve_userinfo", inspect(reason))
     end
   end
 
@@ -330,7 +340,7 @@ defmodule Ueberauth.Strategy.Oidcc do
     }
   end
 
-  defp set_error!(conn, key, message) do
+  defp set_error!(conn, key, message) when is_binary(key) and is_binary(message) do
     set_errors!(conn, [error(key, message)])
   end
 
