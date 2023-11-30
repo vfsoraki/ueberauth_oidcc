@@ -129,7 +129,7 @@ defmodule Ueberauth.Strategy.Oidcc do
       )
 
     maybe_token =
-      with :ok <- verify_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
+      with :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
            {:ok, token} <-
              opts.module.retrieve_token(
                code,
@@ -150,7 +150,7 @@ defmodule Ueberauth.Strategy.Oidcc do
       end
 
     with {:ok, token} <- maybe_token,
-         :ok <- verify_token_scopes(token, retrieve_token_params.scopes) do
+         :ok <- validate_token_scopes(token, retrieve_token_params.scopes, opts.validate_scopes) do
       conn
       |> put_private(:ueberauth_oidcc_token, token)
       |> maybe_put_userinfo(userinfo?)
@@ -179,11 +179,11 @@ defmodule Ueberauth.Strategy.Oidcc do
   # > (such as browser) session and compare it with the redirect URI that the
   # > authorization response was received at, where, if the URIs do not match, the
   # > client shall terminate the process with error
-  defp verify_redirect_uri(:any, _) do
+  defp validate_redirect_uri(:any, _) do
     :ok
   end
 
-  defp verify_redirect_uri(uri, conn) do
+  defp validate_redirect_uri(uri, conn) do
     # generate the current URL but without the query string parameters
     case Plug.Conn.request_url(%{conn | query_string: ""}) do
       ^uri ->
@@ -194,7 +194,13 @@ defmodule Ueberauth.Strategy.Oidcc do
     end
   end
 
-  defp verify_token_scopes(token, requested_scopes) do
+  defp validate_token_scopes(token, requested_scopes, validate_scopes?)
+
+  defp validate_token_scopes(_, _, false) do
+    :ok
+  end
+
+  defp validate_token_scopes(token, requested_scopes, true) do
     # https://openid.net/specs/openid-financial-api-part-1-1_0.html#public-client
     # # > shall verify that the scope received in the token response is either
     # > an exact match, or contains a subset of the scope sent in the
@@ -349,7 +355,8 @@ defmodule Ueberauth.Strategy.Oidcc do
       module: Oidcc,
       redirect_uri: callback_url(conn),
       response_type: "code",
-      scopes: ["openid"]
+      scopes: ["openid"],
+      validate_scopes: false
     }
 
     compile_opts = Map.new(options(conn))

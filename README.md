@@ -51,6 +51,7 @@ config :ueberauth, Ueberauth,
       # optional
       callback_path: "/auth/oidc/callback",
       userinfo: true, # whether to pull info from the Userinfo endpoint, default: false
+      validate_scopes: true, # whether to validate the returned scopes are a subset of those request, default: false
       uid_field: "email", # pulled from the merge of the claims and userinfo (if fetched), default: sub
       authorization_params: %{}, # additional parameters for the authorization request
       authorization_endpoint: "https://oidc-override/request" # override the initial request URI
