@@ -40,64 +40,64 @@ See
 
 See [Ueberauth](https://hexdocs.pm/ueberauth/readme.html#configuring-providers) and [Oidcc](https://hexdocs.pm/oidcc/Oidcc.html#create_redirect_url/4) for a list of supported options.
 
-    ```elixir
-    config :ueberauth, Ueberauth,
-      providers: [
-        oidc: { Ueberauth.Strategy.Oidcc,
-          issuer: :oidcc_issuer, # matches the name above
-          client_id: "client_id",
-          client_secret: "123456789",
-          scopes: ["openid", "profile", "email"],
-          # optional
-          callback_path: "/auth/oidc/callback",
-          userinfo: true, # whether to pull info from the Userinfo endpoint, default: false
-          uid_field: "email", # pulled from the merge of the claims and userinfo (if fetched), default: sub
-          authorization_params: %{}, # additional parameters for the authorization request
-          authorization_endpoint: "https://oidc-override/request" # override the initial request URI
-        }
-      ]
-    ```
+```elixir
+config :ueberauth, Ueberauth,
+  providers: [
+    oidc: { Ueberauth.Strategy.Oidcc,
+      issuer: :oidcc_issuer, # matches the name above
+      client_id: "client_id",
+      client_secret: "123456789",
+      scopes: ["openid", "profile", "email"],
+      # optional
+      callback_path: "/auth/oidc/callback",
+      userinfo: true, # whether to pull info from the Userinfo endpoint, default: false
+      uid_field: "email", # pulled from the merge of the claims and userinfo (if fetched), default: sub
+      authorization_params: %{}, # additional parameters for the authorization request
+      authorization_endpoint: "https://oidc-override/request" # override the initial request URI
+    }
+  ]
+```
 The core Ueberauth configuration is only read at compile time, so if you have runtime configuration you'll need to put it under the `:ueberauth_oidcc` `:strategies` config. 
 
-    ```elixir
-    config :ueberauth, Ueberauth,
-      providers: [
-        oidc: { Ueberauth.Strategy.Oidcc,
-          issuer: :oidcc_issuer,
-          client_id: "client_id"
-        }
-      ]
+```elixir
+config :ueberauth, Ueberauth,
+  providers: [
+    oidc: { Ueberauth.Strategy.Oidcc,
+      issuer: :oidcc_issuer,
+      client_id: "client_id"
+    }
+  ]
 
-    config :ueberauth_oidcc, :strategies,
-      oidc: [
-        client_secret: System.fetch_env!("OIDC_CLIENT_SECRET")
-      ]
-    ```
+ config :ueberauth_oidcc, :strategies,
+  oidc: [
+    client_secret: System.fetch_env!("OIDC_CLIENT_SECRET")
+  ]
+```
 
 ## Usage
 
 1. Include the Ueberauth plug in your controller:
 
-    ```elixir
-    defmodule MyApp.AuthController do
-      use MyApp.Web, :controller
-      plug Ueberauth
-      ...
-    end
-    ```
+```elixir
+defmodule MyApp.AuthController do
+  use MyApp.Web, :controller
+  plug Ueberauth
+  ...
+end
+```
 
-1. Create the request and callback routes if you haven't already:
+2. Create the request and callback routes if you haven't already:
 
-    ```elixir
-    scope "/auth", MyApp do
-      pipe_through :browser
+```elixir
+scope "/auth", MyApp do
+  pipe_through :browser
 
-      get "/:unused", AuthController, :request
-      get "/:unused/callback", AuthController, :callback
-    end
-    ```
+  get "/:unused", AuthController, :request
+  get "/:unused/callback", AuthController, :callback
+end
+```
 
-1. Your controller needs to implement callbacks to deal with `Ueberauth.Auth`
+3. Your controller needs to implement `callback/2` to deal with `Ueberauth.Auth`
 and `Ueberauth.Failure` responses. For an example implementation see the
 [Ueberauth Example](https://github.com/ueberauth/ueberauth_example) application.
 
