@@ -15,7 +15,7 @@ defmodule UeberauthOidcc.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       docs: [
         main: "readme",
-        extras: ["README.md", "LICENSE"]
+        extras: ["README.md", "CHANGELOG.md", "LICENSE"]
       ],
       package: package(),
       deps: deps(),
