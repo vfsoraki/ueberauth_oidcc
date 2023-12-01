@@ -50,6 +50,7 @@ dev:
   variables:
     DIALYZER_CORE_PATH: _build/
   script:
+    - mix hex.audit
     - mix compile --force --warnings-as-errors
     - mix format --check-formatted
     - mix credo --strict
