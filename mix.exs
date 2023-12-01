@@ -37,7 +37,7 @@ defmodule UeberauthOidcc.MixProject do
 
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:crypto],
       mod: {UeberauthOidcc.Application, []}
     ]
   end
