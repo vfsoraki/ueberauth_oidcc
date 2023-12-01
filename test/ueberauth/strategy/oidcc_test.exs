@@ -39,7 +39,7 @@ defmodule Ueberauth.Strategy.OidccTest do
     test "handle overriding configuration with application config", %{conn: conn} do
       Application.put_env(
         :ueberauth_oidcc,
-        :strategies,
+        :providers,
         override_provider: [
           scopes: ~w(openid override-scope)
         ]

@@ -377,7 +377,7 @@ defmodule Ueberauth.Strategy.Oidcc do
 
     runtime_opts =
       Map.new(
-        (Application.get_env(:ueberauth_oidcc, :strategies) || [])[strategy_name(conn)] || %{}
+        (Application.get_env(:ueberauth_oidcc, :providers) || [])[strategy_name(conn)] || %{}
       )
 
     defaults

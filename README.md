@@ -23,7 +23,7 @@ end
 1. Add an OIDC Issuer to your Ueberauth configuration.
 
 An issuer is a single OIDC endpoint, but it can be shared by multiple
-strategies.
+`Ueberauth.Strategy.Oidcc` providers.
 
 ``` elixir
 config :ueberauth_oidcc, :issuers, [
@@ -36,7 +36,7 @@ The issuer must provide OIDC configuration at `<issuer URI>/.well-known/openid-c
 See
 [oidcc_provider_configuration:opts/0](https://hexdocs.pm/oidcc/oidcc_provider_configuration.html#t:opts/0) for issuer parameters.
 
-2. Add the Ueberauth strategy to your configuration.
+2. Add the `Ueberauth.Strategy.Oidcc` strategy to your configuration.
 
 See [Ueberauth](https://hexdocs.pm/ueberauth/readme.html#configuring-providers) and [Oidcc](https://hexdocs.pm/oidcc/Oidcc.html#create_redirect_url/4) for a list of supported options.
 
@@ -58,7 +58,7 @@ config :ueberauth, Ueberauth,
     }
   ]
 ```
-The core Ueberauth configuration is only read at compile time, so if you have runtime configuration you'll need to put it under the `:ueberauth_oidcc` `:strategies` config. 
+The core Ueberauth configuration is only read at compile time, so if you have runtime configuration you'll need to put it under the `:ueberauth_oidcc` `:providers` config. 
 
 ```elixir
 config :ueberauth, Ueberauth,
@@ -69,7 +69,7 @@ config :ueberauth, Ueberauth,
     }
   ]
 
- config :ueberauth_oidcc, :strategies,
+ config :ueberauth_oidcc, :providers,
   oidc: [
     client_secret: System.fetch_env!("OIDC_CLIENT_SECRET")
   ]
