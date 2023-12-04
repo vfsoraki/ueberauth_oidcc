@@ -58,7 +58,7 @@ defmodule UeberauthOidcc.MixProject do
       {:excoveralls, "~> 0.18.0", only: :test, runtime: false},
       {:oidcc, "~> 3.1.0"},
       {:plug, "~> 1.11"},
-      {:ueberauth, "~> 0.10.5"}
+      {:ueberauth, "~> 0.10"}
     ]
   end
 end
