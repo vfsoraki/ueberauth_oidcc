@@ -18,31 +18,16 @@ defmodule FakeOidcc do
     {:error, :not_defined}
   end
 
-  def create_redirect_url(provider_configuration_name, client_id, client_secret, opts)
-
-  def create_redirect_url(:fake_issuer, "oidc_client" = client_id, :unauthenticated, opts) do
-    params = %{
-      client_id: client_id,
-      redirect_uri: opts[:redirect_uri],
-      state: opts[:state],
-      nonce: opts[:nonce],
-      response_type: opts[:response_type],
-      scope: Enum.join(Map.get(opts, :scopes, []), " ")
-    }
-
-    extension =
-      case Map.fetch(opts, :url_extension) do
-        {:ok, e} -> ["&", URI.encode_query(e)]
-        :error -> []
-      end
-
-    query = URI.encode_query(params)
-
-    {:ok, [request_url(), "?", query, extension]}
-  end
-
-  def create_redirect_url(_, _, _, _) do
-    {:error, :not_defined}
+  def create_redirect_url(provider_configuration_name, client_id, client_secret, opts) do
+    with {:ok, context} <-
+           __MODULE__.ClientContext.from_configuration_worker(
+             provider_configuration_name,
+             client_id,
+             client_secret,
+             opts
+           ) do
+      __MODULE__.Authorization.create_redirect_url(context, opts)
+    end
   end
 
   def initiate_logout_url(token, provider_configuration_name, client_id, opts \\ %{})
@@ -170,36 +155,114 @@ defmodule FakeOidcc do
     {:error, :not_defined}
   end
 
-  def retrieve_userinfo(token, provider_configuration_name, client_id, client_secret, opts \\ %{})
-
-  def retrieve_userinfo(_, _, _, _, %{:_retrieve_userinfo => false}) do
-    {:error, :no_userinfo}
+  def retrieve_userinfo(token, provider_configuration_name, client_id, client_secret, opts \\ %{}) do
+    with {:ok, context} <-
+           __MODULE__.ClientContext.from_configuration_worker(
+             provider_configuration_name,
+             client_id,
+             client_secret,
+             opts
+           ) do
+      __MODULE__.Userinfo.retrieve(token, context, opts)
+    end
   end
 
-  def retrieve_userinfo(
-        %Oidcc.Token{access: %Oidcc.Token.Access{token: "access_token_value"}},
-        :fake_issuer,
-        "oidc_client",
-        "secret_value",
-        _opts
-      ) do
-    {:ok,
-     %{
-       "sub" => "userinfo_sub",
-       "name" => "Full Name",
-       "given_name" => "First",
-       "family_name" => "Last",
-       "nickname" => "Nickname",
-       "email" => "test@email.example",
-       "picture" => "http://photo.example",
-       "phone_number" => "phone_number_value",
-       "birthdate" => "1970-01-01",
-       "profile" => "http://profile.example",
-       "website" => "http://website.example"
-     }}
+  defmodule ClientContext do
+    @moduledoc false
+    def from_configuration_worker(issuer, client_id, client_secret, opts)
+
+    def from_configuration_worker(:fake_issuer, client_id, client_secret, _opts) do
+      {:ok,
+       Oidcc.ClientContext.from_manual(
+         %Oidcc.ProviderConfiguration{
+           issuer: "https://issuer.example",
+           authorization_endpoint: FakeOidcc.request_url()
+         },
+         JOSE.JWK.generate_key({:oct, 8}),
+         client_id,
+         client_secret
+       )}
+    end
+
+    def from_configuration_worker(_, _, _, _) do
+      {:error, :not_defined}
+    end
   end
 
-  def retrieve_userinfo(_, _, _, _, _) do
-    {:error, :not_defined}
+  defmodule Authorization do
+    @moduledoc false
+    def create_redirect_url(context, opts)
+
+    def create_redirect_url(
+          %Oidcc.ClientContext{
+            client_id: "oidc_client" = client_id,
+            provider_configuration: %Oidcc.ProviderConfiguration{
+              issuer: "https://issuer.example",
+              authorization_endpoint: endpoint
+            }
+          },
+          opts
+        ) do
+      params = %{
+        client_id: client_id,
+        redirect_uri: opts[:redirect_uri],
+        state: opts[:state],
+        nonce: opts[:nonce],
+        response_type: opts[:response_type],
+        scope: Enum.join(Map.get(opts, :scopes, []), " ")
+      }
+
+      extension =
+        case Map.fetch(opts, :url_extension) do
+          {:ok, e} -> ["&", URI.encode_query(e)]
+          :error -> []
+        end
+
+      query = URI.encode_query(params)
+
+      {:ok, [endpoint, "?", query, extension]}
+    end
+
+    def create_redirect_url(_, _) do
+      {:error, :not_defined}
+    end
+  end
+
+  defmodule Userinfo do
+    @moduledoc false
+    def retrieve(token, context, opts)
+
+    def retrieve(_, _, %{:_retrieve_userinfo => false}) do
+      {:error, :no_userinfo}
+    end
+
+    def retrieve(
+          %Oidcc.Token{access: %Oidcc.Token.Access{token: "access_token_value"}},
+          %Oidcc.ClientContext{
+            provider_configuration: %Oidcc.ProviderConfiguration{issuer: "https://issuer.example"},
+            client_id: "oidc_client",
+            client_secret: "secret_value"
+          },
+          _opts
+        ) do
+      {:ok,
+       %{
+         "sub" => "userinfo_sub",
+         "name" => "Full Name",
+         "given_name" => "First",
+         "family_name" => "Last",
+         "nickname" => "Nickname",
+         "email" => "test@email.example",
+         "picture" => "http://photo.example",
+         "phone_number" => "phone_number_value",
+         "birthdate" => "1970-01-01",
+         "profile" => "http://profile.example",
+         "website" => "http://website.example"
+       }}
+    end
+
+    def retrieve(_, _, _) do
+      {:error, :not_defined}
+    end
   end
 end

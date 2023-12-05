@@ -20,6 +20,7 @@ defmodule Ueberauth.Strategy.OidccTest do
     test "Handles an Oidcc request", %{conn: conn} do
       conn = Ueberauth.run_request(conn, :provider, {Oidcc, @default_options})
 
+      assert %{halted: true} = conn
       assert {302, _headers, _body} = sent_resp(conn)
 
       [location] = get_resp_header(conn, "location")
@@ -63,7 +64,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "create_redirect_url",
+               message_key: "handle_request!",
                message: ":not_defined"
              } = error
     end
@@ -74,7 +75,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "create_redirect_url",
+               message_key: "issuer",
                message: "Missing issuer"
              } = error
     end
@@ -85,7 +86,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "create_redirect_url",
+               message_key: "client_id",
                message: "Missing client_id"
              } = error
     end
@@ -311,7 +312,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "retrieve_token",
+               message_key: "handle_callback!",
                message: ":invalid_code"
              } = error
     end
@@ -322,7 +323,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "retrieve_token",
+               message_key: "redirect_uri",
                message:
                  "Redirected to the wrong URI: http://www.example.com/auth/invalid/callback"
              } = error
@@ -340,7 +341,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "retrieve_token",
+               message_key: "scope",
                message: "Unrequested scopes received: profile"
              } = error
     end
@@ -353,7 +354,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "retrieve_token",
+               message_key: "handle_callback!",
                message: ":no_tokens"
              } = error
     end
@@ -367,7 +368,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "retrieve_token"
+               message_key: "handle_callback!"
              } = error
 
       assert error.message =~ ":missing_claim, {:nonce"
@@ -382,7 +383,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "retrieve_token",
+               message_key: "handle_callback!",
                message: _
              } = error
     end
@@ -412,7 +413,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "retrieve_userinfo",
+               message_key: "handle_callback!",
                message: ":no_userinfo"
              } = error
     end
@@ -430,7 +431,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "retrieve_userinfo",
+               message_key: "handle_callback!",
                message: ":no_userinfo"
              } = error
     end
