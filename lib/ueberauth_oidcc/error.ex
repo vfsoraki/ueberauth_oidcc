@@ -53,6 +53,43 @@ defmodule UeberauthOidcc.Error do
     )
   end
 
+  def describe_error({:missing_claim, {claim, expected_value}, claims}, _key) do
+    actual_value = Map.get(claims, claim)
+
+    error(
+      claim,
+      "Received invalid claim #{claim}: expected #{inspect(expected_value)}, got #{inspect(actual_value)}"
+    )
+  end
+
+  def describe_error({:missing_claim, claim, _claims}, _key) do
+    error(
+      claim,
+      "Missing required claim #{claim}"
+    )
+  end
+
+  def describe_error({:no_matching_key_with_kid, _}, key) do
+    error(
+      key,
+      "Invalid signature"
+    )
+  end
+
+  def describe_error(:no_matching_key, key) do
+    error(
+      key,
+      "Invalid signature"
+    )
+  end
+
+  def describe_error(:bad_subject, _key) do
+    error(
+      "sub",
+      "Invalid subject"
+    )
+  end
+
   def describe_error({:http_error, _code, %{"error" => error} = body}, _key) do
     description = Map.get(body, "error_description", "")
 

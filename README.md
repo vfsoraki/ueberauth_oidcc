@@ -71,7 +71,7 @@ config :ueberauth, Ueberauth,
     oidc: { Ueberauth.Strategy.Oidcc,
       issuer: :oidcc_issuer,
       client_id: {:system, "CLIENT_ID"},
-      client_secret, {System, :get_env, ["CLIENT_SECRET"]}
+      client_secret: {System, :get_env, ["CLIENT_SECRET"]}
     }
   ]
 ```
@@ -79,6 +79,7 @@ config :ueberauth, Ueberauth,
 2. Put it under the `:ueberauth_oidcc` `:providers` config. 
 
 ```elixir
+ # config/runtime.exs
  config :ueberauth_oidcc, :providers,
   oidc: [
     client_secret: System.fetch_env!("OIDC_CLIENT_SECRET")
