@@ -75,7 +75,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "issuer",
+               message_key: "config",
                message: "Missing issuer"
              } = error
     end
@@ -86,7 +86,7 @@ defmodule Ueberauth.Strategy.OidccTest do
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
-               message_key: "client_id",
+               message_key: "config",
                message: "Missing client_id"
              } = error
     end

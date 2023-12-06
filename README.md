@@ -4,7 +4,10 @@
 ![coverage badge](https://gitlab.com/paulswartz/ueberauth_oidcc/badges/main/coverage.svg)
 ![latest release badge](https://gitlab.com/paulswartz/ueberauth_oidcc/-/badges/release.svg)
 
-Implementation of [Ueberauth.Strategy](https://hexdocs.pm/ueberauth/Ueberauth.Strategy.html) based on the [Oidcc](https://hexdocs.pm/oidcc/readme.html) library.
+`UeberauthOidcc` is two things:
+
+- an implementation of [Ueberauth.Strategy](https://hexdocs.pm/ueberauth/Ueberauth.Strategy.html) based on the [Oidcc](https://hexdocs.pm/oidcc/readme.html) library
+- a set of modules for implementing other OpenID Connect (OIDC) strategies
 
 ## Installation
 
@@ -38,7 +41,7 @@ See
 
 2. Add the `Ueberauth.Strategy.Oidcc` strategy to your configuration.
 
-See [Ueberauth](https://hexdocs.pm/ueberauth/readme.html#configuring-providers) and [Oidcc](https://hexdocs.pm/oidcc/Oidcc.html#create_redirect_url/4) for a list of supported options.
+See [UeberauthOidcc.Config](https://hexdocs.pm/ueberauth_oidcc/UeberauthOidcc.Config.html) for supported options.
 
 ```elixir
 config :ueberauth, Ueberauth,
@@ -58,17 +61,24 @@ config :ueberauth, Ueberauth,
     }
   ]
 ```
-The core Ueberauth configuration is only read at compile time, so if you have runtime configuration you'll need to put it under the `:ueberauth_oidcc` `:providers` config. 
+The core Ueberauth configuration is only read at compile time, so if you have runtime configuration you'll need to use one of two approaches:
 
-```elixir
+1. Use a `{module, fun, args}` tuple or `{:system, <env var>}` tuple.
+
+``` elixir
 config :ueberauth, Ueberauth,
   providers: [
     oidc: { Ueberauth.Strategy.Oidcc,
       issuer: :oidcc_issuer,
-      client_id: "client_id"
+      client_id: {:system, "CLIENT_ID"},
+      client_secret, {System, :get_env, ["CLIENT_SECRET"]}
     }
   ]
+```
 
+2. Put it under the `:ueberauth_oidcc` `:providers` config. 
+
+```elixir
  config :ueberauth_oidcc, :providers,
   oidc: [
     client_secret: System.fetch_env!("OIDC_CLIENT_SECRET")

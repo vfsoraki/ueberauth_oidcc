@@ -14,12 +14,12 @@ defmodule Ueberauth.Strategy.Oidcc do
   def handle_request!(conn) do
     opts = get_options!(conn)
 
-    case UeberauthOidcc.handle_request(opts, conn) do
+    case UeberauthOidcc.Request.handle_request(opts, conn) do
       {:ok, conn} ->
         conn
 
       {:error, conn, reason} ->
-        UeberauthOidcc.set_described_error(conn, reason, "handle_request!")
+        UeberauthOidcc.Error.set_described_error(conn, reason, "handle_request!")
     end
   end
 
@@ -31,14 +31,14 @@ defmodule Ueberauth.Strategy.Oidcc do
 
     conn = put_private(conn, :ueberauth_oidcc_opts, opts)
 
-    case UeberauthOidcc.handle_callback(opts, conn) do
+    case UeberauthOidcc.Callback.handle_callback(opts, conn) do
       {:ok, conn, token, userinfo} ->
         conn
         |> put_private(:ueberauth_oidcc_token, token)
         |> put_private(:ueberauth_oidcc_userinfo, userinfo)
 
       {:error, conn, reason} ->
-        UeberauthOidcc.set_described_error(conn, reason, "handle_callback!")
+        UeberauthOidcc.Error.set_described_error(conn, reason, "handle_callback!")
     end
   end
 
@@ -73,7 +73,7 @@ defmodule Ueberauth.Strategy.Oidcc do
   """
   def credentials(conn) do
     token = conn.private.ueberauth_oidcc_token
-    UeberauthOidcc.credentials(token)
+    UeberauthOidcc.Auth.credentials(token)
   end
 
   @doc """
@@ -96,7 +96,7 @@ defmodule Ueberauth.Strategy.Oidcc do
   This information is also included in the `Ueberauth.Auth.Credentials` struct.
   """
   def info(conn) do
-    UeberauthOidcc.info(
+    UeberauthOidcc.Auth.info(
       conn.private.ueberauth_oidcc_token,
       conn.private[:ueberauth_oidcc_userinfo]
     )
@@ -108,8 +108,7 @@ defmodule Ueberauth.Strategy.Oidcc do
     runtime_opts =
       (Application.get_env(:ueberauth_oidcc, :providers) || [])[strategy_name(conn)] || []
 
-    UeberauthOidcc.merge_and_expand_configuration([
-      default_options(),
+    UeberauthOidcc.Config.merge_and_expand_configuration([
       compile_opts,
       runtime_opts
     ])

@@ -1,6 +1,6 @@
 defmodule UeberauthOidcc.RawInfo do
   @moduledoc """
-  Struct for the data passed to the callback as `s:Ueberauth.Auth.Extra` `raw_info`.
+  Struct for the data passed to the callback as the `raw_info` in  `Ueberauth.Auth.Extra`.
   """
   @type t() :: %__MODULE__{
           opts: map,
