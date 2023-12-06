@@ -1,6 +1,11 @@
 defmodule Ueberauth.Strategy.Oidcc do
   @moduledoc """
   OIDC Strategy for Ueberauth.
+
+  ## Options
+  - uid_field: claim to use for the `uid` field in `Ueberauth.Auth` (default: "sub")
+
+  See `UeberauthOidcc.Config` for other configuration.
   """
   use Ueberauth.Strategy
 
