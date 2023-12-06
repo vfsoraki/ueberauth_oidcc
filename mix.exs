@@ -4,10 +4,12 @@ defmodule UeberauthOidcc.MixProject do
   def project do
     [
       app: :ueberauth_oidcc,
-      version: "0.2.0",
+      version: "0.3.0",
       elixir: ">= 1.14.4 and < 2.0.0",
+      name: "Ueberauth OIDCC",
       description: """
-      An Ueberauth strategy for generic OpenID Connect authentication.
+      An Ueberauth strategy for generic OpenID Connect (OIDC) authentication,
+      and a library for implementing other OIDC strategies.
 
       Based on the Oidcc library.
       """,
