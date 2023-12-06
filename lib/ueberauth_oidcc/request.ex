@@ -17,7 +17,7 @@ defmodule UeberauthOidcc.Request do
   `Plug.Conn.t()` redirected to the authentication endpoint, or an error
   (and the updated conn).
 
-  See `UeberauthOidcc.Error.set_described_error/2` for help with rendering the
+  See `UeberauthOidcc.Error.set_described_error/3` for help with rendering the
   error.
   """
   @spec handle_request(UeberauthOidcc.Config.t(), Plug.Conn.t()) ::

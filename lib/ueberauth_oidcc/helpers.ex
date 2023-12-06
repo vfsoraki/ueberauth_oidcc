@@ -2,9 +2,9 @@ defmodule UeberauthOidcc.Helpers do
   @moduledoc false
 
   @doc false
-  @spec client_context(UeberauthOidcc.Config.t()) ::
+  @spec client_context(UeberauthOidcc.Config.t(), map) ::
           {:ok, Oidcc.ClientContext.t()} | {:error, term}
-  def client_context(opts, provider_overrides \\ %{})
+  def client_context(opts, provider_overrides)
 
   def client_context(%{issuer: _, client_id: _, client_secret: _} = opts, provider_overrides) do
     with {:ok, client_context} <-
@@ -37,7 +37,7 @@ defmodule UeberauthOidcc.Helpers do
   end
 
   @doc false
-  def apply_oidcc(opts, additional_mods \\ [], fun, args) do
+  def apply_oidcc(opts, additional_mods, fun, args) do
     mod = Module.concat([opts.module | additional_mods])
     apply(mod, fun, args)
   end

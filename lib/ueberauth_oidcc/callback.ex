@@ -17,7 +17,7 @@ defmodule UeberauthOidcc.Callback do
   `Plug.Conn.t()`, a token and the userinfo claims, or an error (and the
   updated conn).
 
-  See `UeberauthOidcc.Error.set_described_error/2` for help with rendering the
+  See `UeberauthOidcc.Error.set_described_error/3` for help with rendering the
   error.
   """
   @spec handle_callback(UeberauthOidcc.Config.t(), Plug.Conn.t()) ::
@@ -52,7 +52,7 @@ defmodule UeberauthOidcc.Callback do
     maybe_token =
       with :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
            {:ok, token} <-
-             apply_oidcc(opts, :retrieve_token, [
+             apply_oidcc(opts, [], :retrieve_token, [
                code,
                opts.issuer,
                opts.client_id,

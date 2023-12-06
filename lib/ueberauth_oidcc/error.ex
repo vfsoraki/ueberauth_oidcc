@@ -10,17 +10,11 @@ defmodule UeberauthOidcc.Error do
   Renders the given error reason as an `Ueberauth.Failure.t()` on the
   `Plug.Conn.t()`.
 
-  `key` will be used as the default `message_key` if a better one is
+  `message_key` will be used as the default `message_key` if a better one is
   unavailable.
   """
-  @spec set_described_error(Plug.Conn.t(), term()) :: Plug.Conn.t()
-  @spec set_described_error(Plug.Conn.t(), term(), message_key :: binary()) :: Plug.Conn.t()
-  def set_described_error(conn, reason) do
-    error = describe_error(reason)
-
-    set_errors!(conn, [error])
-  end
-
+  @spec set_described_error(Plug.Conn.t(), reason :: term(), message_key :: binary()) ::
+          Plug.Conn.t()
   def set_described_error(conn, reason, message_key) do
     error = describe_error(reason, message_key)
 
@@ -28,11 +22,13 @@ defmodule UeberauthOidcc.Error do
   end
 
   @doc """
-  Renders the given error as an `Ueberauth.Failure.Error.t()`
+  Renders the given error as an `Ueberauth.Failure.Error.t()`.
+
+  `message_key` will be used as the default `message_key` if a better one is
+  unavailable.
   """
-  @spec describe_error(term) :: Ueberauth.Failure.Error.t()
-  @spec describe_error(term, message_key :: binary()) :: Ueberauth.Failure.Error.t()
-  def describe_error(reason, message_key \\ "error")
+  @spec describe_error(reason :: term(), message_key :: binary()) :: Ueberauth.Failure.Error.t()
+  def describe_error(reason, message_key)
 
   def describe_error({:missing_config, config_key}, _key) do
     error("config", "Missing #{config_key}")
