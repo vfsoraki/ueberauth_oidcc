@@ -49,14 +49,15 @@ defmodule UeberauthOidcc.Callback do
         }
       )
 
+    provider_overrides = Map.take(opts, [:token_endpoint])
+
     maybe_token =
       with :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
+           {:ok, client_context} <- client_context(opts, provider_overrides),
            {:ok, token} <-
-             apply_oidcc(opts, [], :retrieve_token, [
+             apply_oidcc(opts, [Token], :retrieve, [
                code,
-               opts.issuer,
-               opts.client_id,
-               opts.client_secret,
+               client_context,
                retrieve_token_params
              ]) do
         {:ok, token}

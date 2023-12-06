@@ -17,6 +17,7 @@ defmodule UeberauthOidcc.Config do
   - scopes: list of scopes to request (default: ["openid"])
   - authorization_params: additional parameters to pass in the query to the authorization_endpoint
   - authorization_endpoint: override the authorization_endpoint defined by the issuer
+  - token_endpoint: override the token_endpoint defined by the issuer
   - userinfo: whether to request the userinfo endpoint (default: false)
   - userinfo_endpoint: override the userinfo_endpoint defined by the issuer
   - validate_scopes: whether to validate that the returned scopes are a subset of the requested scopes (default: false)
@@ -40,6 +41,7 @@ defmodule UeberauthOidcc.Config do
           optional(:authorization_params) => Enumerable.t(),
           optional(:authorization_endpoint) => binary(),
           # callback
+          optional(:token_endpoint) => binary(),
           optional(:userinfo) => boolean(),
           optional(:userinfo_endpoint) => binary(),
           # testing

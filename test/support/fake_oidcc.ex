@@ -67,91 +67,17 @@ defmodule FakeOidcc do
     {:error, :not_defined}
   end
 
-  def retrieve_token(auth_code, provider_configuration_name, client_id, client_secret, opts)
-
-  def retrieve_token(_, _, _, _, %{:_retrieve_token => false}) do
-    {:error, :no_tokens}
-  end
-
-  def retrieve_token(
-        auth_code,
-        provider_configuration_name,
-        client_id,
-        client_secret,
-        %{:_retrieve_token => :alg_none} = opts
-      ) do
-    opts = Map.delete(opts, :_retrieve_token)
-
-    case retrieve_token(auth_code, provider_configuration_name, client_id, client_secret, opts) do
-      {:ok, token} ->
-        {:error, {:none_alg_used, token}}
-
-      {:error, _} = e ->
-        e
+  def retrieve_token(code, provider_configuration_name, client_id, client_secret, opts) do
+    with {:ok, context} <-
+           __MODULE__.ClientContext.from_configuration_worker(
+             provider_configuration_name,
+             client_id,
+             client_secret,
+             opts
+           ) do
+      __MODULE__.Token.retrieve(code, context, opts)
     end
-  end
 
-  def retrieve_token(
-        auth_code,
-        provider_configuration_name,
-        client_id,
-        client_secret,
-        %{:_retrieve_token => :invalid_nonce} = opts
-      ) do
-    opts = Map.delete(opts, :_retrieve_token)
-
-    case retrieve_token(auth_code, provider_configuration_name, client_id, client_secret, opts) do
-      {:ok, %{id: %{claims: claims}}} ->
-        {:error, {:missing_claim, {:nonce, Map.get(opts, :nonce), claims}}}
-
-      {:error, _} = e ->
-        e
-    end
-  end
-
-  def retrieve_token(auth_code, :fake_issuer, "oidc_client", "secret_value", opts) do
-    if auth_code == callback_code() do
-      claims = %{
-        "sub" => "sub_value",
-        "email" => "email_value"
-      }
-
-      claims =
-        case Map.get(opts, :nonce) do
-          b when is_binary(b) -> Map.put(claims, "nonce", b)
-          _ -> claims
-        end
-
-      refresh =
-        if "offline_access" in opts.scopes do
-          %Oidcc.Token.Refresh{
-            token: "refresh_token_value"
-          }
-        else
-          nil
-        end
-
-      token = %Oidcc.Token{
-        access: %Oidcc.Token.Access{
-          token: "access_token_value",
-          # 5 minutes
-          expires: Map.get(opts, :_access_token_expires, 300)
-        },
-        id: %Oidcc.Token.Id{
-          token: "id_token_value",
-          claims: claims
-        },
-        refresh: refresh,
-        scope: ["openid", "profile"]
-      }
-
-      {:ok, token}
-    else
-      {:error, :invalid_code}
-    end
-  end
-
-  def retrieve_token(_, _, _, _, _) do
     {:error, :not_defined}
   end
 
@@ -225,6 +151,103 @@ defmodule FakeOidcc do
 
     def create_redirect_url(_, _) do
       {:error, :not_defined}
+    end
+  end
+
+  defmodule Token do
+    @moduledoc false
+    def retrieve(code, context, opts) do
+      retrieve_token(
+        code,
+        context.provider_configuration.issuer,
+        context.client_id,
+        context.client_secret,
+        opts
+      )
+    end
+
+    def retrieve_token(auth_code, issuer, client_id, client_secret, opts)
+
+    def retrieve_token(_, _, _, _, %{:_retrieve_token => false}) do
+      {:error, :no_tokens}
+    end
+
+    def retrieve_token(
+          auth_code,
+          issuer,
+          client_id,
+          client_secret,
+          %{:_retrieve_token => :alg_none} = opts
+        ) do
+      opts = Map.delete(opts, :_retrieve_token)
+
+      case retrieve_token(auth_code, issuer, client_id, client_secret, opts) do
+        {:ok, token} ->
+          {:error, {:none_alg_used, token}}
+
+        {:error, _} = e ->
+          e
+      end
+    end
+
+    def retrieve_token(
+          auth_code,
+          issuer,
+          client_id,
+          client_secret,
+          %{:_retrieve_token => :invalid_nonce} = opts
+        ) do
+      opts = Map.delete(opts, :_retrieve_token)
+
+      case retrieve_token(auth_code, issuer, client_id, client_secret, opts) do
+        {:ok, %{id: %{claims: claims}}} ->
+          {:error, {:missing_claim, {:nonce, Map.get(opts, :nonce), claims}}}
+
+        {:error, _} = e ->
+          e
+      end
+    end
+
+    def retrieve_token(auth_code, "https://issuer.example", "oidc_client", "secret_value", opts) do
+      if auth_code == FakeOidcc.callback_code() do
+        claims = %{
+          "sub" => "sub_value",
+          "email" => "email_value"
+        }
+
+        claims =
+          case Map.get(opts, :nonce) do
+            b when is_binary(b) -> Map.put(claims, "nonce", b)
+            _ -> claims
+          end
+
+        refresh =
+          if "offline_access" in opts.scopes do
+            %Oidcc.Token.Refresh{
+              token: "refresh_token_value"
+            }
+          else
+            nil
+          end
+
+        token = %Oidcc.Token{
+          access: %Oidcc.Token.Access{
+            token: "access_token_value",
+            # 5 minutes
+            expires: Map.get(opts, :_access_token_expires, 300)
+          },
+          id: %Oidcc.Token.Id{
+            token: "id_token_value",
+            claims: claims
+          },
+          refresh: refresh,
+          scope: ["openid", "profile"]
+        }
+
+        {:ok, token}
+      else
+        {:error, :invalid_code}
+      end
     end
   end
 

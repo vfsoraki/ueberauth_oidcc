@@ -2,7 +2,7 @@ defmodule UeberauthOidcc.Helpers do
   @moduledoc false
 
   @doc false
-  @spec client_context(UeberauthOidcc.Config.t(), map) ::
+  @spec client_context(opts :: map(), provider_overrides :: map()) ::
           {:ok, Oidcc.ClientContext.t()} | {:error, term}
   def client_context(opts, provider_overrides)
 
