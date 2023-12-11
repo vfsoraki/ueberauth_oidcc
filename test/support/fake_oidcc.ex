@@ -294,4 +294,34 @@ defmodule FakeOidcc do
       {:error, :not_defined}
     end
   end
+
+  defmodule TokenIntrospection do
+    @moduledoc false
+    def introspect(token, context, opts)
+
+    def introspect(_, _, %{:_introspect => :not_supported}) do
+      {:error, :introspection_not_supported}
+    end
+
+    def introspect(
+          %Oidcc.Token{access: %Oidcc.Token.Access{token: "access_token_value"}},
+          %Oidcc.ClientContext{
+            provider_configuration: %Oidcc.ProviderConfiguration{issuer: "https://issuer.example"},
+            client_id: "oidc_client",
+            client_secret: "secret_value"
+          },
+          %{refresh_jwks: _} = _opts
+        ) do
+      {:ok,
+       %Oidcc.TokenIntrospection{
+         active: true,
+         client_id: "oidc_client",
+         scope: ["openid", "profile"]
+       }}
+    end
+
+    def introspect(_, _, _) do
+      {:error, :not_defined}
+    end
+  end
 end

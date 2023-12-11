@@ -14,14 +14,18 @@ defmodule UeberauthOidcc.Callback do
   Support implementation of `c:Ueberauth.Strategy.handle_callback!/1`
 
   Takes options and the `Plug.Conn.t()`, and returns either an updated
-  `Plug.Conn.t()`, a token and the userinfo claims, or an error (and the
+  `Plug.Conn.t()`, a token, userinfo claims, and introspection, or an error (and the
   updated conn).
 
   See `UeberauthOidcc.Error.set_described_error/3` for help with rendering the
   error.
   """
   @spec handle_callback(UeberauthOidcc.Config.t(), Plug.Conn.t()) ::
-          {:ok, Plug.Conn.t(), Oidcc.Token.t(), userinfo :: :oidcc_jwt_util.claims()}
+          {:ok, Plug.Conn.t(), Oidcc.Token.t(),
+           %{
+             optional(:userinfo) => :oidcc_jwt_util.claims(),
+             optional(:introspection) => Oidcc.TokenIntrospection.t()
+           }}
           | {:error, Plug.Conn.t(), term}
   def handle_callback(opts, conn)
 
@@ -77,8 +81,15 @@ defmodule UeberauthOidcc.Callback do
     with {:ok, token} <- maybe_token,
          :ok <-
            validate_token_scopes(token, Map.get(session, :scopes, :any), opts.validate_scopes),
-         {:ok, userinfo} <- maybe_userinfo(opts, token) do
-      {:ok, conn, token, userinfo}
+         {:ok, userinfo} <- maybe_userinfo(opts, token),
+         {:ok, introspection} <- maybe_introspection(opts, token) do
+      additional =
+        for {key, value} <- [userinfo: userinfo, introspection: introspection],
+            value != nil,
+            into: %{},
+            do: {key, value}
+
+      {:ok, conn, token, additional}
     else
       {:error, reason} -> {:error, conn, reason}
     end
@@ -152,6 +163,30 @@ defmodule UeberauthOidcc.Callback do
   end
 
   defp maybe_userinfo(_opts, _token) do
+    {:ok, nil}
+  end
+
+  defp maybe_introspection(%{introspection: true} = opts, token) do
+    provider_overrides = Map.take(opts, [:introspection_endpoint])
+
+    with {:ok, client_context} <- client_context(opts, provider_overrides),
+         {:ok, introspection} <-
+           apply_oidcc(opts, [TokenIntrospection], :introspect, [
+             token,
+             client_context,
+             opts
+           ]) do
+      {:ok, introspection}
+    else
+      {:error, :introspection_not_supported} ->
+        {:ok, nil}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp maybe_introspection(_opts, _token) do
     {:ok, nil}
   end
 end

@@ -44,6 +44,8 @@ defmodule UeberauthOidcc.Config do
           optional(:token_endpoint) => binary(),
           optional(:userinfo) => boolean(),
           optional(:userinfo_endpoint) => binary(),
+          optional(:introspection) => boolean(),
+          optional(:introspection_endpoint) => binary(),
           # testing
           optional(:module) => module(),
           optional(:response_type) => binary(),
@@ -61,6 +63,7 @@ defmodule UeberauthOidcc.Config do
       response_type: "code",
       scopes: ["openid"],
       userinfo: false,
+      introspection: false,
       validate_scopes: false,
       session_key: "ueberauth_strategy_oidcc"
     }

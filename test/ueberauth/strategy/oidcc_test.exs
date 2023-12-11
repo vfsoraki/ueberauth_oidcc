@@ -2,7 +2,7 @@ defmodule Ueberauth.Strategy.OidccTest do
   use ExUnit.Case, async: true
   use Plug.Test
 
-  alias Ueberauth.Strategy.Oidcc
+  alias Ueberauth.Strategy.Oidcc, as: Strategy
 
   @default_options [
     module: FakeOidcc,
@@ -18,7 +18,7 @@ defmodule Ueberauth.Strategy.OidccTest do
     end
 
     test "Handles an Oidcc request", %{conn: conn} do
-      conn = Ueberauth.run_request(conn, :provider, {Oidcc, @default_options})
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, @default_options})
 
       assert %{halted: true} = conn
       assert {302, _headers, _body} = sent_resp(conn)
@@ -46,7 +46,7 @@ defmodule Ueberauth.Strategy.OidccTest do
         ]
       )
 
-      conn = Ueberauth.run_request(conn, :override_provider, {Oidcc, @default_options})
+      conn = Ueberauth.run_request(conn, :override_provider, {Strategy, @default_options})
 
       assert {302, _headers, _body} = sent_resp(conn)
 
@@ -60,7 +60,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
     test "Handles an error in an Oidcc request (invalid issuer)", %{conn: conn} do
       options = Keyword.merge(@default_options, issuer: :not_valid)
-      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
@@ -71,7 +71,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
     test "Handles an error in an Oidcc request (missing issuer)", %{conn: conn} do
       options = Keyword.delete(@default_options, :issuer)
-      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
@@ -82,7 +82,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
     test "Handles an error in an Oidcc request (missing client_id)", %{conn: conn} do
       options = Keyword.delete(@default_options, :client_id)
-      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
       [error | _] = conn.assigns.ueberauth_failure.errors
 
       assert %Ueberauth.Failure.Error{
@@ -93,7 +93,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
     test "Handle callback from provider with a callback_path", %{conn: conn} do
       options = Keyword.put(@default_options, :callback_path, "/custom_callback")
-      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
 
       assert {302, _headers, _body} = sent_resp(conn)
       [location] = get_resp_header(conn, "location")
@@ -103,7 +103,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
     test "Handle callback from provider with custom request scopes", %{conn: conn} do
       options = Keyword.put(@default_options, :scopes, ~w(openid custom))
-      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
 
       assert {302, _headers, _body} = sent_resp(conn)
       [location] = get_resp_header(conn, "location")
@@ -121,7 +121,7 @@ defmodule Ueberauth.Strategy.OidccTest do
           atom: "value"
         })
 
-      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
 
       assert {302, _headers, _body} = sent_resp(conn)
       [location] = get_resp_header(conn, "location")
@@ -141,7 +141,7 @@ defmodule Ueberauth.Strategy.OidccTest do
           "https://oidc-override.example/request"
         )
 
-      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
 
       assert {302, _headers, _body} = sent_resp(conn)
       [location] = get_resp_header(conn, "location")
@@ -164,7 +164,7 @@ defmodule Ueberauth.Strategy.OidccTest do
           authorization_params: %{"request" => "param"}
         )
 
-      conn = Ueberauth.run_request(conn, :provider, {Oidcc, options})
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
 
       assert {302, _headers, _body} = sent_resp(conn)
       [location] = get_resp_header(conn, "location")
@@ -186,7 +186,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
       assert %Ueberauth.Auth{
                provider: :provider,
-               strategy: Ueberauth.Strategy.Oidcc,
+               strategy: Strategy,
                uid: "sub_value",
                credentials: %Ueberauth.Auth.Credentials{
                  expires: true,
@@ -290,6 +290,43 @@ defmodule Ueberauth.Strategy.OidccTest do
                extra: %Ueberauth.Auth.Extra{
                  raw_info: %{
                    userinfo: %{"sub" => "userinfo_sub"}
+                 }
+               }
+             } = conn.assigns.ueberauth_auth
+    end
+
+    test "Handle callback from provider with a token introspection endpoint",
+         %{conn: conn} do
+      options =
+        @default_options
+        |> Keyword.put(:introspection, true)
+
+      conn = run_request_and_callback(conn, options: options)
+
+      assert %Ueberauth.Auth{
+               extra: %Ueberauth.Auth.Extra{
+                 raw_info: %{
+                   introspection: %Oidcc.TokenIntrospection{
+                     active: true
+                   }
+                 }
+               }
+             } = conn.assigns.ueberauth_auth
+    end
+
+    test "Handle callback from provider with a token introspection endpoint even if introspection is not supported",
+         %{conn: conn} do
+      options =
+        @default_options
+        |> Keyword.put(:introspection, true)
+        |> Keyword.put(:_introspect, :not_supported)
+
+      conn = run_request_and_callback(conn, options: options)
+
+      assert %Ueberauth.Auth{
+               extra: %Ueberauth.Auth.Extra{
+                 raw_info: %{
+                   introspection: nil
                  }
                }
              } = conn.assigns.ueberauth_auth
@@ -451,13 +488,13 @@ defmodule Ueberauth.Strategy.OidccTest do
                  ueberauth_oidcc_token: nil,
                  ueberauth_oidcc_userinfo: nil
                }
-             } = Oidcc.handle_cleanup!(conn_with_values)
+             } = Strategy.handle_cleanup!(conn_with_values)
     end
   end
 
   defp run_request_and_callback(conn, opts \\ []) do
     oidcc_options = Keyword.get(opts, :options, @default_options)
-    conn_with_cookies = Ueberauth.run_request(conn, :provider, {Oidcc, oidcc_options})
+    conn_with_cookies = Ueberauth.run_request(conn, :provider, {Strategy, oidcc_options})
     state_cookie = conn_with_cookies.resp_cookies["ueberauth.state_param"].value
 
     callback_path = Keyword.get(opts, :callback_path, "/auth/provider/callback")
@@ -485,6 +522,6 @@ defmodule Ueberauth.Strategy.OidccTest do
       |> Map.put(:cookies, %{"ueberauth.state_param" => state_cookie})
       |> init_test_session(session)
 
-    Ueberauth.run_callback(conn, :provider, {Oidcc, oidcc_options})
+    Ueberauth.run_callback(conn, :provider, {Strategy, oidcc_options})
   end
 end

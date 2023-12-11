@@ -5,13 +5,15 @@ defmodule UeberauthOidcc.RawInfo do
   @type t() :: %__MODULE__{
           opts: map,
           claims: string_map(),
-          userinfo: string_map() | nil
+          userinfo: string_map() | nil,
+          introspection: map() | nil
         }
   @type string_map() :: %{optional(String.t()) => String.t() | number | string_map() | nil}
 
-  @derive {Inspect, except: [:opts], optional: [:userinfo]}
+  @derive {Inspect, except: [:opts], optional: [:userinfo, :introspection]}
 
   defstruct opts: %{},
             claims: %{},
-            userinfo: nil
+            userinfo: nil,
+            introspection: nil
 end

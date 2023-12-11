@@ -37,10 +37,11 @@ defmodule Ueberauth.Strategy.Oidcc do
     conn = put_private(conn, :ueberauth_oidcc_opts, opts)
 
     case UeberauthOidcc.Callback.handle_callback(opts, conn) do
-      {:ok, conn, token, userinfo} ->
+      {:ok, conn, token, additional} ->
         conn
         |> put_private(:ueberauth_oidcc_token, token)
-        |> put_private(:ueberauth_oidcc_userinfo, userinfo)
+        |> put_private(:ueberauth_oidcc_userinfo, additional[:userinfo])
+        |> put_private(:ueberauth_oidcc_introspection, additional[:introspection])
 
       {:error, conn, reason} ->
         UeberauthOidcc.Error.set_described_error(conn, reason, "handle_callback!")
@@ -53,6 +54,7 @@ defmodule Ueberauth.Strategy.Oidcc do
     |> put_private(:ueberauth_oidcc_opts, nil)
     |> put_private(:ueberauth_oidcc_token, nil)
     |> put_private(:ueberauth_oidcc_userinfo, nil)
+    |> put_private(:ueberauth_oidcc_introspection, nil)
   end
 
   @doc """
@@ -89,7 +91,8 @@ defmodule Ueberauth.Strategy.Oidcc do
       raw_info: %UeberauthOidcc.RawInfo{
         opts: conn.private.ueberauth_oidcc_opts,
         claims: conn.private.ueberauth_oidcc_token.id.claims,
-        userinfo: conn.private[:ueberauth_oidcc_userinfo]
+        userinfo: conn.private[:ueberauth_oidcc_userinfo],
+        introspection: conn.private[:ueberauth_oidcc_introspection]
       }
     }
   end
