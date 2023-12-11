@@ -11,7 +11,7 @@ sub-modules. This allows them to serve as implementations for other Ueberauth
 strategies which use OIDC, by passing in different opts.
 
 - feat: support overriding the token_endpoint
-- doc: add the `uid_field`` to the list of options
+- doc: add the `uid_field` to the list of options
 - feat: add some additional error descriptions
 - refactor!: pull implementation into UeberauthOidcc modules
 
