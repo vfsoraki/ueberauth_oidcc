@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.3.1 - 2023-12-10
+
+- fix: refresh JWKs if needed (#5)
+
+## v0.3.0 - 2023-12-05
+
+The big change in 0.3.0 is refactoring the implementation into various
+sub-modules. This allows them to serve as implementations for other Ueberauth
+strategies which use OIDC, by passing in different opts.
+
+- feat: support overriding the token_endpoint
+- doc: add the `uid_field`` to the list of options
+- feat: add some additional error descriptions
+- refactor!: pull implementation into UeberauthOidcc modules
+
+BREAKING CHANGE: if you were using `module` for testing, you'll need to
+implement some additional sub-modules: `ClientContext`, `Authorization`, `Token`
+and `Userinfo`.
+
 ## v0.2.0 - 2023-12-01
 
 - fix!: switch runtime environment key to `providers` (BREAKING CHANGE)
