@@ -2,6 +2,21 @@ defmodule UeberauthOidcc.Helpers do
   @moduledoc false
 
   @doc false
+  @spec opts_with_refresh(opts) :: opts when opts: map()
+  def opts_with_refresh(%{refresh_jwks: _} = opts) do
+    opts
+  end
+
+  def opts_with_refresh(%{issuer: issuer} = opts) do
+    refresh_jwks_fn = :oidcc_jwt_util.refresh_jwks_fun(issuer)
+    Map.put(opts, :refresh_jwks, refresh_jwks_fn)
+  end
+
+  def opts_with_refresh(%{} = opts) do
+    opts
+  end
+
+  @doc false
   @spec client_context(opts :: map(), provider_overrides :: map()) ::
           {:ok, Oidcc.ClientContext.t()} | {:error, term}
   def client_context(opts, provider_overrides)

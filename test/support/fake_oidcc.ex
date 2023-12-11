@@ -208,7 +208,13 @@ defmodule FakeOidcc do
       end
     end
 
-    def retrieve_token(auth_code, "https://issuer.example", "oidc_client", "secret_value", opts) do
+    def retrieve_token(
+          auth_code,
+          "https://issuer.example",
+          "oidc_client",
+          "secret_value",
+          %{refresh_jwks: _} = opts
+        ) do
       if auth_code == FakeOidcc.callback_code() do
         claims = %{
           "sub" => "sub_value",
@@ -266,7 +272,7 @@ defmodule FakeOidcc do
             client_id: "oidc_client",
             client_secret: "secret_value"
           },
-          _opts
+          %{refresh_jwks: _} = _opts
         ) do
       {:ok,
        %{

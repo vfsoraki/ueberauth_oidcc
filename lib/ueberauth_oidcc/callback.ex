@@ -26,7 +26,10 @@ defmodule UeberauthOidcc.Callback do
   def handle_callback(opts, conn)
 
   def handle_callback(opts, %{params: %{"code" => code}} = conn) when is_binary(code) do
-    opts = Map.merge(Config.default(), Map.new(opts))
+    opts =
+      Config.default()
+      |> Map.merge(Map.new(opts))
+      |> opts_with_refresh()
 
     session = get_session(conn, opts.session_key) || %{}
     conn = delete_session(conn, opts.session_key)

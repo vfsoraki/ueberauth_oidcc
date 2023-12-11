@@ -26,6 +26,7 @@ defmodule UeberauthOidcc.Request do
     opts =
       Config.default()
       |> Map.merge(Map.new(opts))
+      |> opts_with_refresh()
       |> Map.put_new(:redirect_uri, callback_url(conn))
 
     # Nonce: stored as raw bytes, sent as an encoded SHA512 string. This is the
