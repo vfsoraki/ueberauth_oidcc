@@ -26,9 +26,7 @@ defmodule UeberauthOidcc.Callback do
              optional(:introspection) => Oidcc.TokenIntrospection.t()
            }}
           | {:error, Plug.Conn.t(), term}
-  def handle_callback(opts, conn)
-
-  def handle_callback(opts, %{params: %{"code" => code} = params} = conn) when is_binary(code) do
+  def handle_callback(opts, conn) do
     opts =
       Config.default()
       |> Map.merge(Map.new(opts))
@@ -37,6 +35,12 @@ defmodule UeberauthOidcc.Callback do
     session = Session.get(conn, opts)
     conn = Session.delete(conn, opts)
 
+    conn
+    |> retrieve_token(session, opts)
+    |> handle_token(conn, session, opts)
+  end
+
+  defp retrieve_token(conn, session, opts) do
     userinfo? = opts.userinfo
 
     nonce =
@@ -57,29 +61,54 @@ defmodule UeberauthOidcc.Callback do
 
     provider_overrides = Map.take(opts, [:token_endpoint])
 
-    maybe_token =
-      with :ok <- validate_state(Map.get(session, :state), params["state"]),
-           :ok <- validate_issuer(Map.get(session, :issuer, {}), opts.issuer),
-           :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
-           {:ok, client_context, opts} <- client_context(opts, provider_overrides),
-           :ok <- validate_iss_param(Map.get(params, "iss"), client_context),
-           {:ok, token} <-
-             apply_oidcc(opts, [Token], :retrieve, [
-               code,
-               client_context,
-               Map.merge(opts, retrieve_token_params)
-             ]) do
+    with :ok <- validate_response_mode(Map.get(session, :response_mode, :any), conn),
+         :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
+         :ok <- validate_issuer(Map.get(session, :issuer, :any), opts.issuer),
+         {:ok, client_context, opts} <- client_context(opts, provider_overrides),
+         {:ok, %{"code" => code} = claims} <-
+           claims_from_params(conn.params, client_context, opts),
+         :ok <- validate_state(Map.get(session, :state), claims["state"]),
+         {:ok, token} <-
+           apply_oidcc(opts, [Token], :retrieve, [
+             code,
+             client_context,
+             Map.merge(opts, retrieve_token_params)
+           ]) do
+      {:ok, token}
+    else
+      {:error, {:none_alg_used, token}} when userinfo? ->
+        # the none algorithm is okay for the ID token if we then verify the
+        # userinfo (oidcc-client-test-idtoken-sig-none)
         {:ok, token}
-      else
-        {:error, {:none_alg_used, token}} when userinfo? ->
-          # the none algorithm is okay for the ID token if we then verify the
-          # userinfo (oidcc-client-test-idtoken-sig-none)
-          {:ok, token}
 
-        {:error, reason} ->
-          {:error, reason}
-      end
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
 
+  defp claims_from_params(%{"code" => _code} = params, client_context, _opts) do
+    case validate_iss_param(Map.get(params, "iss"), client_context) do
+      :ok ->
+        {:ok, params}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp claims_from_params(%{"response" => jarm_response}, client_context, opts) do
+    apply_oidcc(opts, [Token], :validate_jarm, [
+      jarm_response,
+      client_context,
+      opts
+    ])
+  end
+
+  defp claims_from_params(_params, _client_context, _opts) do
+    {:error, :missing_code}
+  end
+
+  defp handle_token(maybe_token, conn, session, opts) do
     with {:ok, token} <- maybe_token,
          :ok <-
            validate_token_scopes(token, Map.get(session, :scopes, :any), opts.validate_scopes),
@@ -97,11 +126,49 @@ defmodule UeberauthOidcc.Callback do
     end
   end
 
-  def handle_callback(opts, conn) do
-    opts = Map.merge(Config.default(), Map.new(opts))
-    conn = Session.delete(conn, opts)
+  defp validate_response_mode(:any, _) do
+    :ok
+  end
 
-    {:error, conn, :missing_code}
+  defp validate_response_mode(response_mode, %Plug.Conn{
+         method: "GET",
+         params: %{"response" => _}
+       })
+       when response_mode in ["jwt", "query.jwt"] do
+    :ok
+  end
+
+  defp validate_response_mode("form_post.jwt", %Plug.Conn{
+         method: "POST",
+         params: %{"response" => _}
+       }) do
+    :ok
+  end
+
+  defp validate_response_mode("form_post", %Plug.Conn{method: "POST"} = conn) do
+    case conn.params do
+      %{"response" => _} ->
+        # if we did get a JARM but didn't expect it, bail out
+        {:error, {:invalid_response_mode, "form_post"}}
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp validate_response_mode("query", %Plug.Conn{method: "GET"} = conn) do
+    case conn.params do
+      %{"response" => _} ->
+        # if we did get a JARM but didn't expect it, bail out
+        {:error, {:invalid_response_mode, "query"}}
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp validate_response_mode(mode, _expected) do
+    {:error, {:invalid_response_mode, mode}}
   end
 
   # https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest

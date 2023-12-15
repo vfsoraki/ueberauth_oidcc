@@ -14,6 +14,15 @@ defmodule Ueberauth.Strategy.OidccTest do
     scopes: ~w(openid email)
   ]
 
+  Code.ensure_loaded(Oidcc.Token)
+
+  jarm_tag =
+    if function_exported?(Oidcc.Token, :validate_jarm, 3) do
+      :jarm
+    else
+      [skip: "JARM not implemented"]
+    end
+
   describe "Oidcc Strategy" do
     setup do
       conn = init_test_session(conn(:get, "/auth/provider"), %{})
@@ -47,6 +56,77 @@ defmodule Ueberauth.Strategy.OidccTest do
                "scope" => "openid email",
                "response_type" => "code",
                "state" => _
+             } = query
+    end
+
+    test "Oidcc requests use `form_post` if POST is a supported callback method", %{conn: conn} do
+      options =
+        Keyword.merge(
+          @default_options,
+          callback_methods: ["POST"]
+        )
+
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
+
+      assert %{halted: true} = conn
+      assert {302, _headers, _body} = sent_resp(conn)
+
+      [location] = get_resp_header(conn, "location")
+      assert String.starts_with?(location, "#{FakeOidcc.request_url()}?")
+
+      query = URI.decode_query(URI.parse(location).query)
+
+      assert %{
+               "response_mode" => "form_post"
+             } = query
+    end
+
+    @tag jarm_tag
+    test "Oidcc requests use `jwt` if supported", %{conn: conn} do
+      options =
+        Keyword.merge(
+          @default_options,
+          issuer: :fake_issuer_with_jwt
+        )
+
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
+
+      assert %{halted: true} = conn
+      assert {302, _headers, _body} = sent_resp(conn)
+
+      [location] = get_resp_header(conn, "location")
+      assert String.starts_with?(location, "#{FakeOidcc.request_url()}?")
+
+      query = URI.decode_query(URI.parse(location).query)
+
+      assert %{
+               "response_mode" => "jwt"
+             } = query
+    end
+
+    @tag jarm_tag
+    test "Oidcc requests use `form_post.jwt` if supported and callback_methods include POST", %{
+      conn: conn
+    } do
+      options =
+        Keyword.merge(
+          @default_options,
+          issuer: :fake_issuer_with_jwt,
+          callback_methods: ["POST"]
+        )
+
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
+
+      assert %{halted: true} = conn
+      assert {302, _headers, _body} = sent_resp(conn)
+
+      [location] = get_resp_header(conn, "location")
+      assert String.starts_with?(location, "#{FakeOidcc.request_url()}?")
+
+      query = URI.decode_query(URI.parse(location).query)
+
+      assert %{
+               "response_mode" => "form_post.jwt"
              } = query
     end
 
@@ -370,6 +450,27 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = error
     end
 
+    @tag jarm_tag
+    test "Handle callback from provider with a valid JARM response", %{conn: conn} do
+      options = Keyword.put(@default_options, :issuer, :fake_issuer_with_jwt)
+      conn = run_request_and_callback(conn, options: options, code: {:jarm, "jarm_response"})
+
+      assert %Ueberauth.Auth{} = conn.assigns.ueberauth_auth
+    end
+
+    @tag jarm_tag
+    test "Handle callback from provider with an invalid JARM response", %{conn: conn} do
+      options = Keyword.put(@default_options, :issuer, :fake_issuer_with_jwt)
+      conn = run_request_and_callback(conn, options: options, code: {:jarm, "invalid_response"})
+
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "handle_callback!",
+               message: ":token_expired"
+             } = error
+    end
+
     test "Handle callback from provider with an invalid state", %{conn: conn} do
       conn = run_request_and_callback(conn, state_suffix: "1")
 
@@ -574,11 +675,13 @@ defmodule Ueberauth.Strategy.OidccTest do
         Map.merge(Config.default(), Map.new(oidcc_options))
       )
 
+    state = session.state <> Keyword.get(opts, :state_suffix, "")
     callback_path = Keyword.get(opts, :callback_path, "/auth/provider/callback")
 
     code_opt =
       case Keyword.fetch(opts, :code) do
         {:ok, nil} -> %{}
+        {:ok, {:jarm, response}} -> %{"response" => response <> state}
         {:ok, value} -> %{"code" => value}
         :error -> %{"code" => FakeOidcc.callback_code()}
       end
@@ -587,7 +690,7 @@ defmodule Ueberauth.Strategy.OidccTest do
 
     params =
       code_opt
-      |> Map.put("state", session.state <> Keyword.get(opts, :state_suffix, ""))
+      |> Map.put("state", state)
       |> Map.merge(other_params)
 
     conn =

@@ -102,7 +102,8 @@ defmodule FakeOidcc do
        Oidcc.ClientContext.from_manual(
          %Oidcc.ProviderConfiguration{
            issuer: "https://issuer.example",
-           authorization_endpoint: FakeOidcc.request_url()
+           authorization_endpoint: FakeOidcc.request_url(),
+           response_modes_supported: ["query", "fragment", "form_post"]
          },
          JOSE.JWK.generate_key({:oct, 8}),
          client_id,
@@ -128,6 +129,25 @@ defmodule FakeOidcc do
       # TODO put this in the struct once it's in an Oidcc release
       provider_configuration =
         Map.put(provider_configuration, :authorization_response_iss_parameter_supported, true)
+
+      {:ok, %{client_context | provider_configuration: provider_configuration}}
+    end
+
+    def from_configuration_worker(:fake_issuer_with_jwt, client_id, client_secret, _opts) do
+      %Oidcc.ClientContext{
+        provider_configuration: provider_configuration
+      } =
+        client_context =
+        Oidcc.ClientContext.from_manual(
+          %Oidcc.ProviderConfiguration{
+            issuer: "https://issuer.example",
+            authorization_endpoint: FakeOidcc.request_url(),
+            response_modes_supported: ["query", "jwt", "form_post.jwt"]
+          },
+          JOSE.JWK.generate_key({:oct, 8}),
+          client_id,
+          client_secret
+        )
 
       {:ok, %{client_context | provider_configuration: provider_configuration}}
     end
@@ -160,6 +180,15 @@ defmodule FakeOidcc do
         response_type: opts[:response_type],
         scope: Enum.join(Map.get(opts, :scopes, []), " ")
       }
+
+      params =
+        case Map.get(opts, :response_mode, "query") do
+          "query" ->
+            params
+
+          response_mode ->
+            Map.put(params, :response_mode, response_mode)
+        end
 
       extension =
         case Map.fetch(opts, :url_extension) do
@@ -277,6 +306,21 @@ defmodule FakeOidcc do
       else
         {:error, :invalid_code}
       end
+    end
+
+    def validate_jarm(
+          "jarm_response" <> state,
+          %Oidcc.ClientContext{
+            client_id: "oidc_client",
+            provider_configuration: %Oidcc.ProviderConfiguration{issuer: "https://issuer.example"}
+          },
+          _opts
+        ) do
+      {:ok, %{"code" => FakeOidcc.callback_code(), "state" => state}}
+    end
+
+    def validate_jarm(_response, _client_context, _opts) do
+      {:error, :token_expired}
     end
   end
 

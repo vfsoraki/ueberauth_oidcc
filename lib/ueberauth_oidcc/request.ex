@@ -56,7 +56,7 @@ defmodule UeberauthOidcc.Request do
     }
 
     case create_redirect_url(opts, redirect_params) do
-      {:ok, uri} ->
+      {:ok, uri, response_mode} ->
         conn =
           conn
           |> Session.put(opts, %{
@@ -65,7 +65,8 @@ defmodule UeberauthOidcc.Request do
             raw_nonce: raw_nonce,
             pkce_verifier: pkce_verifier,
             redirect_uri: opts.redirect_uri,
-            scopes: opts.scopes
+            scopes: opts.scopes,
+            response_mode: response_mode
           })
           |> redirect!(IO.iodata_to_binary(uri))
 
@@ -88,11 +89,16 @@ defmodule UeberauthOidcc.Request do
 
     provider_overrides = Map.take(opts, [:authorization_endpoint])
 
-    with {:ok, client_context, opts} <- client_context(opts, provider_overrides) do
-      apply_oidcc(opts, [Authorization], :create_redirect_url, [
-        client_context,
-        Map.merge(opts, redirect_params)
-      ])
+    with {:ok, client_context, opts} <- client_context(opts, provider_overrides),
+         response_mode =
+           response_mode(client_context.provider_configuration.response_modes_supported, opts),
+         redirect_params = Map.put(redirect_params, :response_mode, response_mode),
+         {:ok, uri} <-
+           apply_oidcc(opts, [Authorization], :create_redirect_url, [
+             client_context,
+             Map.merge(opts, redirect_params)
+           ]) do
+      {:ok, uri, response_mode}
     end
   end
 
@@ -105,6 +111,41 @@ defmodule UeberauthOidcc.Request do
         end
 
       {key, value}
+    end
+  end
+
+  Code.ensure_loaded(Oidcc.Token)
+
+  if function_exported?(Oidcc.Token, :validate_jarm, 3) do
+    defp response_mode(response_modes_supported, opts) do
+      supports_post? = "POST" in Map.get(opts, :callback_methods, [])
+
+      cond do
+        supports_post? and "form_post.jwt" in response_modes_supported ->
+          "form_post.jwt"
+
+        "query.jwt" in response_modes_supported ->
+          "query.jwt"
+
+        "jwt" in response_modes_supported ->
+          "jwt"
+
+        supports_post? and "form_post" in response_modes_supported ->
+          "form_post"
+
+        true ->
+          "query"
+      end
+    end
+  else
+    defp response_mode(response_modes_supported, opts) do
+      supports_post? = "POST" in Map.get(opts, :callback_methods, [])
+
+      if supports_post? and "form_post" in response_modes_supported do
+        "form_post"
+      else
+        "query"
+      end
     end
   end
 end

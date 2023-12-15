@@ -3,6 +3,8 @@
 ## v0.4.0 - TBD
 
 - feat!: add `introspection` opt for fetching Token Introspection
+- feat: support [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/oauth-v2-jarm-final.html)
+- feat: store session data in a separate UeberauthOidcc cookie
 - fix: support multiple issuers
 - fix: use `client_secret` when generating request URLs
 - fix: limit `nonce` to 43 characters
