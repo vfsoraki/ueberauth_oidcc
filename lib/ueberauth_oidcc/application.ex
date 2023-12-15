@@ -7,7 +7,8 @@ defmodule UeberauthOidcc.Application do
   def start(_type, _args) do
     children =
       for child_opts <- Application.get_env(:ueberauth_oidcc, :issuers) || [] do
-        {Oidcc.ProviderConfiguration.Worker, child_opts}
+        name = Map.fetch!(child_opts, :name)
+        Supervisor.child_spec({Oidcc.ProviderConfiguration.Worker, child_opts}, id: name)
       end
 
     opts = [strategy: :one_for_one, name: UeberauthOidcc.Supervisor]
