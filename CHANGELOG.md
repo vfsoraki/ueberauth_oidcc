@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.0 - 2023-12-18
+
+- feat!: add `introspection` opt for fetching Token Introspection
+- fix: support multiple issuers
+
+BREAKING CHANGE: the API for `UeberauthOidcc.Callback.handle_callback/2`
+has changed to make the 4th item in the tuple a map, rather than only
+the userinfo claims.
+
 ## v0.3.1 - 2023-12-10
 
 - fix: refresh JWKs if needed (#5)
