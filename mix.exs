@@ -4,7 +4,7 @@ defmodule UeberauthOidcc.MixProject do
   def project do
     [
       app: :ueberauth_oidcc,
-      version: "0.4.0",
+      version: "0.4.0-pre",
       elixir: ">= 1.14.4 and < 2.0.0",
       name: "Ueberauth OIDCC",
       description: """
