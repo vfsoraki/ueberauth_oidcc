@@ -80,6 +80,7 @@ defmodule UeberauthOidcc.Request do
           redirect_params
       end
 
+    opts = Map.put(opts, :client_secret, :unauthenticated)
     provider_overrides = Map.take(opts, [:authorization_endpoint])
 
     with {:ok, client_context} <- client_context(opts, provider_overrides) do
