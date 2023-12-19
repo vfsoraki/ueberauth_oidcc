@@ -122,7 +122,7 @@ defmodule FakeOidcc do
     def create_redirect_url(
           %Oidcc.ClientContext{
             client_id: "oidc_client" = client_id,
-            client_secret: :unauthenticated,
+            client_secret: "secret_value",
             provider_configuration: %Oidcc.ProviderConfiguration{
               issuer: "https://issuer.example",
               authorization_endpoint: endpoint
