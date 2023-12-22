@@ -38,7 +38,7 @@ defmodule UeberauthOidcc.Callback do
 
     nonce =
       case Map.fetch(session, :raw_nonce) do
-        {:ok, raw_nonce} -> url_encode64(:crypto.hash(:sha512, raw_nonce))
+        {:ok, raw_nonce} -> url_encode64(:crypto.hash(:sha256, raw_nonce))
         :error -> :any
       end
 

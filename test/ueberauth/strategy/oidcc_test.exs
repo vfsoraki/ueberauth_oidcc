@@ -182,7 +182,10 @@ defmodule Ueberauth.Strategy.OidccTest do
     end
 
     test "Handle callback from Oidcc with default uid field (sub)", %{conn: conn} do
-      conn = run_request_and_callback(conn)
+      {request_conn, conn} = run_request_and_callback(conn, return_request_conn: true)
+
+      [redirect_location] = get_resp_header(request_conn, "location")
+      %{"nonce" => nonce} = URI.decode_query(URI.parse(redirect_location).query)
 
       assert %Ueberauth.Auth{
                provider: :provider,
@@ -199,7 +202,7 @@ defmodule Ueberauth.Strategy.OidccTest do
                info: %Ueberauth.Auth.Info{email: "email_value"},
                extra: %Ueberauth.Auth.Extra{
                  raw_info: %{
-                   claims: %{"sub" => _},
+                   claims: %{"sub" => _, "nonce" => ^nonce},
                    userinfo: nil
                  }
                }
@@ -455,7 +458,7 @@ defmodule Ueberauth.Strategy.OidccTest do
     end
   end
 
-  defp run_request_and_callback(conn, opts \\ []) do
+  defp run_request_and_callback(conn, opts) do
     oidcc_options = Keyword.get(opts, :options, @default_options)
     conn_with_cookies = Ueberauth.run_request(conn, :provider, {Oidcc, oidcc_options})
     state_cookie = conn_with_cookies.resp_cookies["ueberauth.state_param"].value
@@ -484,7 +487,12 @@ defmodule Ueberauth.Strategy.OidccTest do
       )
       |> Map.put(:cookies, %{"ueberauth.state_param" => state_cookie})
       |> init_test_session(session)
+      |> Ueberauth.run_callback(:provider, {Oidcc, oidcc_options})
 
-    Ueberauth.run_callback(conn, :provider, {Oidcc, oidcc_options})
+    if opts[:return_request_conn] do
+      {conn_with_cookies, conn}
+    else
+      conn
+    end
   end
 end
