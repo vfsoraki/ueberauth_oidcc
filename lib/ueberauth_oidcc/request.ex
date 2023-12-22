@@ -29,11 +29,12 @@ defmodule UeberauthOidcc.Request do
       |> opts_with_refresh()
       |> Map.put_new(:redirect_uri, callback_url(conn))
 
-    # Nonce: stored as raw bytes, sent as an encoded SHA512 string. This is the
+    # Nonce: stored as raw bytes, sent as an encoded SHA256 string. This is the
     # approach recommended by the spec:
-    # https://openid.net/specs/openid-connect-core-1_0.html#NonceNotes
-    # 64 random bytes is the same size as the SHA512 output.
-    raw_nonce = :crypto.strong_rand_bytes(64)
+    # https://openid.net/specs/openid-connect-core-1_0.html#NonceNotes 32 random
+    # bytes is the same size as the SHA256 output. This results in a
+    # 43-character base64url-encoded nonce, which is the max for safe interoperability.
+    raw_nonce = :crypto.strong_rand_bytes(32)
 
     # PKCE Verifier: a 43 - 128 character string from the alphabet [A-Z] / [a-z]
     # / [0-9] / "-" / "." / "_" / "~". The recommendation is to generate a
@@ -47,7 +48,7 @@ defmodule UeberauthOidcc.Request do
       redirect_uri: opts.redirect_uri,
       state: with_state_param([], conn)[:state],
       pkce_verifier: pkce_verifier,
-      nonce: url_encode64(:crypto.hash(:sha512, raw_nonce)),
+      nonce: url_encode64(:crypto.hash(:sha256, raw_nonce)),
       scopes: opts.scopes
     }
 
