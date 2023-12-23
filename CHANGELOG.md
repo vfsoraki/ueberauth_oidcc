@@ -1,10 +1,11 @@
 # Changelog
 
-## v0.4.0 - 2023-12-19
+## v0.4.0 - TBD
 
 - feat!: add `introspection` opt for fetching Token Introspection
 - fix: support multiple issuers
 - fix: use `client_secret` when generating request URLs
+- fix: limit `nonce` to 43 characters
 
 BREAKING CHANGE: the API for `UeberauthOidcc.Callback.handle_callback/2`
 has changed to make the 4th item in the tuple a map, rather than only
