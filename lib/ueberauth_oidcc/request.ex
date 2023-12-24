@@ -60,6 +60,7 @@ defmodule UeberauthOidcc.Request do
         conn =
           conn
           |> Session.put(opts, %{
+            issuer: opts.issuer,
             state: state,
             raw_nonce: raw_nonce,
             pkce_verifier: pkce_verifier,

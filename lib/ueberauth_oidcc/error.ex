@@ -43,6 +43,10 @@ defmodule UeberauthOidcc.Error do
     error("csrf_attack", "Cross-Site Request Forgery attack")
   end
 
+  def describe_error({:invalid_issuer, issuer, expected}, _key) do
+    error("issuer", "Expected code for issuer #{expected}, but got callback for #{issuer}")
+  end
+
   def describe_error({:invalid_redirect_uri, uri}, _key) do
     error("redirect_uri", "Redirected to the wrong URI: #{uri}")
   end

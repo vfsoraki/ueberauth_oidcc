@@ -59,9 +59,9 @@ defmodule UeberauthOidcc.Callback do
 
     maybe_token =
       with :ok <- validate_state(Map.get(session, :state), params["state"]),
+           :ok <- validate_issuer(Map.get(session, :issuer, :any), opts.issuer),
            :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
            {:ok, client_context} <- client_context(opts, provider_overrides),
-           :ok <- validate_iss_param(Map.get(params, "iss"), client_context),
            {:ok, token} <-
              apply_oidcc(opts, [Token], :retrieve, [
                code,
@@ -117,6 +117,22 @@ defmodule UeberauthOidcc.Callback do
     {:error, :invalid_state}
   end
 
+  # https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics#name-mix-up-attacks
+  # > [...] clients MUST store, for each authorization request, the issuer
+  # > they sent the authorization request to and bind this information to
+  # > the user agent.
+  defp validate_issuer(:any, _) do
+    :ok
+  end
+
+  defp validate_issuer(issuer, issuer) do
+    :ok
+  end
+
+  defp validate_issuer(issuer, expected) do
+    {:error, {:invalid_issuer, issuer, expected}}
+  end
+
   # https://openid.net/specs/openid-financial-api-part-1-1_0.html#public-client
   # > shall store the redirect URI value in the resource owner's user-agents
   # > (such as browser) session and compare it with the redirect URI that the
@@ -163,28 +179,6 @@ defmodule UeberauthOidcc.Callback do
     else
       {:error, {:additional_scopes, additional_scopes}}
     end
-  end
-
-  defp validate_iss_param(iss, client_context)
-
-  defp validate_iss_param(iss, %{provider_configuration: %{issuer: iss}}) do
-    :ok
-  end
-
-  defp validate_iss_param(iss, %{
-         provider_configuration: %{
-           authorization_response_iss_parameter_supported: true
-         }
-       }) do
-    if is_nil(iss) do
-      {:error, :missing_issuer}
-    else
-      {:error, {:invalid_issuer, iss}}
-    end
-  end
-
-  defp validate_iss_param(_iss, _context) do
-    :ok
   end
 
   defp maybe_userinfo(%{userinfo: true} = opts, token) do
