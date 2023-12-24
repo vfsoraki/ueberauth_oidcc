@@ -61,7 +61,7 @@ defmodule UeberauthOidcc.Callback do
       with :ok <- validate_state(Map.get(session, :state), params["state"]),
            :ok <- validate_issuer(Map.get(session, :issuer, {}), opts.issuer),
            :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
-           {:ok, client_context} <- client_context(opts, provider_overrides),
+           {:ok, client_context, opts} <- client_context(opts, provider_overrides),
            :ok <- validate_iss_param(Map.get(params, "iss"), client_context),
            {:ok, token} <-
              apply_oidcc(opts, [Token], :retrieve, [
@@ -210,7 +210,7 @@ defmodule UeberauthOidcc.Callback do
   defp maybe_userinfo(%{userinfo: true} = opts, token) do
     provider_overrides = Map.take(opts, [:userinfo_endpoint])
 
-    with {:ok, client_context} <- client_context(opts, provider_overrides) do
+    with {:ok, client_context, opts} <- client_context(opts, provider_overrides) do
       apply_oidcc(opts, [Userinfo], :retrieve, [
         token,
         client_context,
@@ -226,7 +226,7 @@ defmodule UeberauthOidcc.Callback do
   defp maybe_introspection(%{introspection: true} = opts, token) do
     provider_overrides = Map.take(opts, [:introspection_endpoint])
 
-    with {:ok, client_context} <- client_context(opts, provider_overrides),
+    with {:ok, client_context, opts} <- client_context(opts, provider_overrides),
          {:ok, introspection} <-
            apply_oidcc(opts, [TokenIntrospection], :introspect, [
              token,

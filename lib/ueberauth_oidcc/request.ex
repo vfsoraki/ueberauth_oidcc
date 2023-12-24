@@ -88,8 +88,11 @@ defmodule UeberauthOidcc.Request do
 
     provider_overrides = Map.take(opts, [:authorization_endpoint])
 
-    with {:ok, client_context} <- client_context(opts, provider_overrides) do
-      apply_oidcc(opts, [Authorization], :create_redirect_url, [client_context, redirect_params])
+    with {:ok, client_context, opts} <- client_context(opts, provider_overrides) do
+      apply_oidcc(opts, [Authorization], :create_redirect_url, [
+        client_context,
+        Map.merge(opts, redirect_params)
+      ])
     end
   end
 
