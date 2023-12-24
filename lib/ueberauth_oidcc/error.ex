@@ -47,6 +47,13 @@ defmodule UeberauthOidcc.Error do
     error("issuer", "Expected code for issuer #{expected}, but got callback for #{issuer}")
   end
 
+  def describe_error(:missing_issuer, _key) do
+    error(
+      "iss",
+      "Missing expected iss param"
+    )
+  end
+
   def describe_error({:invalid_redirect_uri, uri}, _key) do
     error("redirect_uri", "Redirected to the wrong URI: #{uri}")
   end
@@ -101,6 +108,13 @@ defmodule UeberauthOidcc.Error do
     error(
       error,
       description
+    )
+  end
+
+  def describe_error({:use_dpop_nonce, nonce, _}, _key) do
+    error(
+      "use_dpop_nonce",
+      nonce
     )
   end
 

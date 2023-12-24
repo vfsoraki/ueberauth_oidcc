@@ -110,6 +110,28 @@ defmodule FakeOidcc do
        )}
     end
 
+    def from_configuration_worker(:fake_issuer_with_iss, client_id, client_secret, _opts) do
+      %Oidcc.ClientContext{
+        provider_configuration: provider_configuration
+      } =
+        client_context =
+        Oidcc.ClientContext.from_manual(
+          %Oidcc.ProviderConfiguration{
+            issuer: "https://issuer.example",
+            authorization_endpoint: FakeOidcc.request_url()
+          },
+          JOSE.JWK.generate_key({:oct, 8}),
+          client_id,
+          client_secret
+        )
+
+      # TODO put this in the struct once it's in an Oidcc release
+      provider_configuration =
+        Map.put(provider_configuration, :authorization_response_iss_parameter_supported, true)
+
+      {:ok, %{client_context | provider_configuration: provider_configuration}}
+    end
+
     def from_configuration_worker(_, _, _, _) do
       {:error, :not_defined}
     end

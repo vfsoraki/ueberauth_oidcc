@@ -28,7 +28,7 @@ defmodule UeberauthOidcc.Auth do
     %Ueberauth.Auth.Credentials{
       token: token.access.token,
       refresh_token: refresh_token,
-      token_type: "Bearer",
+      token_type: Map.get(token.access, :type, "Bearer"),
       expires: !!token.access.expires,
       expires_at: expires_at,
       scopes: token.scope,

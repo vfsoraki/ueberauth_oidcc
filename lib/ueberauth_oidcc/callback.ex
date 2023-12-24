@@ -59,9 +59,10 @@ defmodule UeberauthOidcc.Callback do
 
     maybe_token =
       with :ok <- validate_state(Map.get(session, :state), params["state"]),
-           :ok <- validate_issuer(Map.get(session, :issuer, :any), opts.issuer),
+           :ok <- validate_issuer(Map.get(session, :issuer, {}), opts.issuer),
            :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
            {:ok, client_context} <- client_context(opts, provider_overrides),
+           :ok <- validate_iss_param(Map.get(params, "iss"), client_context),
            {:ok, token} <-
              apply_oidcc(opts, [Token], :retrieve, [
                code,
@@ -121,7 +122,9 @@ defmodule UeberauthOidcc.Callback do
   # > [...] clients MUST store, for each authorization request, the issuer
   # > they sent the authorization request to and bind this information to
   # > the user agent.
-  defp validate_issuer(:any, _) do
+
+  # we use a different sentinel here to avoid the `:any` atom overlapping with the name of an actual issuer.
+  defp validate_issuer({}, _) do
     :ok
   end
 
@@ -179,6 +182,29 @@ defmodule UeberauthOidcc.Callback do
     else
       {:error, {:additional_scopes, additional_scopes}}
     end
+  end
+
+  defp validate_iss_param(iss, client_context)
+
+  defp validate_iss_param(iss, %{provider_configuration: %{issuer: iss}}) do
+    :ok
+  end
+
+  defp validate_iss_param(actual, %{provider_configuration: %{issuer: expected}})
+       when is_binary(actual) and actual != expected do
+    {:error, {:invalid_issuer, actual, expected}}
+  end
+
+  defp validate_iss_param(nil, %{
+         provider_configuration: %{
+           authorization_response_iss_parameter_supported: true
+         }
+       }) do
+    {:error, :missing_issuer}
+  end
+
+  defp validate_iss_param(_iss, _context) do
+    :ok
   end
 
   defp maybe_userinfo(%{userinfo: true} = opts, token) do

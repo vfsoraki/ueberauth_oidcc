@@ -500,6 +500,46 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = error
     end
 
+    test "Handle callback from provider with a valid iss param",
+         %{conn: conn} do
+      conn = run_request_and_callback(conn, url_params: %{"iss" => "https://issuer.example"})
+
+      assert conn.assigns.ueberauth_auth
+    end
+
+    test "Handle callback from provider with an invalid iss param",
+         %{conn: conn} do
+      conn =
+        run_request_and_callback(conn,
+          url_params: %{"iss" => "https://issuer.example/invalid"}
+        )
+
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "issuer",
+               message:
+                 "Expected code for issuer https://issuer.example, but got callback for https://issuer.example/invalid"
+             } = error
+    end
+
+    test "Handle callback from provider with a missing iss param when it's expected",
+         %{conn: conn} do
+      options = Keyword.put(@default_options, :issuer, :fake_issuer_with_iss)
+
+      conn =
+        run_request_and_callback(conn,
+          options: options
+        )
+
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "iss",
+               message: "Missing expected iss param"
+             } = error
+    end
+
     test "handle cleanup of uberauth values in the conn" do
       conn_with_values = %Plug.Conn{
         private: %{
@@ -543,17 +583,16 @@ defmodule Ueberauth.Strategy.OidccTest do
         :error -> %{"code" => FakeOidcc.callback_code()}
       end
 
+    other_params = Keyword.get(opts, :url_params, %{})
+
+    params =
+      code_opt
+      |> Map.put("state", session.state <> Keyword.get(opts, :state_suffix, ""))
+      |> Map.merge(other_params)
+
     conn =
       :get
-      |> conn(
-        callback_path,
-        Map.merge(
-          %{
-            "state" => session.state <> Keyword.get(opts, :state_suffix, "")
-          },
-          code_opt
-        )
-      )
+      |> conn(callback_path, params)
       |> Map.put(:secret_key_base, conn_with_cookies.secret_key_base)
       |> Map.put(:req_cookies, req_cookies)
       |> Ueberauth.run_callback(:provider, {Strategy, oidcc_options})
