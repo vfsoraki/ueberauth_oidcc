@@ -38,6 +38,11 @@ defmodule UeberauthOidcc.Error do
     error("code", "Query string does not contain field 'code'")
   end
 
+  def describe_error(:invalid_state, _key) do
+    # same error as https://github.com/ueberauth/ueberauth/blob/master/lib/ueberauth/strategy.ex#L363C1-L363C87
+    error("csrf_attack", "Cross-Site Request Forgery attack")
+  end
+
   def describe_error({:invalid_redirect_uri, uri}, _key) do
     error("redirect_uri", "Redirected to the wrong URI: #{uri}")
   end
