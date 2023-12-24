@@ -62,7 +62,9 @@ defmodule UeberauthOidcc.Config do
       scopes: ["openid"],
       userinfo: false,
       validate_scopes: false,
-      session_key: "ueberauth_strategy_oidcc"
+      session_key: "ueberauth_strategy_oidcc",
+      session_cookie: "_ueberauth_strategy_oidcc",
+      session_max_age: 3600
     }
   end
 

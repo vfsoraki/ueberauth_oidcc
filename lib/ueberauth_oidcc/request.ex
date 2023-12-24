@@ -4,11 +4,10 @@ defmodule UeberauthOidcc.Request do
   """
 
   alias UeberauthOidcc.Config
+  alias UeberauthOidcc.Session
   import UeberauthOidcc.Helpers
 
-  import Plug.Conn, only: [put_session: 3]
-
-  import Ueberauth.Strategy.Helpers, only: [callback_url: 1, with_state_param: 2, redirect!: 2]
+  import Ueberauth.Strategy.Helpers, only: [callback_path: 1, callback_url: 1, redirect!: 2]
 
   @doc """
   Support implementation of `c:Ueberauth.Strategy.handle_request!/1`
@@ -27,7 +26,11 @@ defmodule UeberauthOidcc.Request do
       Config.default()
       |> Map.merge(Map.new(opts))
       |> opts_with_refresh()
+      |> Map.put_new(:callback_path, callback_path(conn))
       |> Map.put_new(:redirect_uri, callback_url(conn))
+
+    # State: 24 URL-safe bytes
+    state = url_encode64(:crypto.strong_rand_bytes(16))
 
     # Nonce: stored as raw bytes, sent as an encoded SHA256 string. This is the
     # approach recommended by the spec:
@@ -46,7 +49,7 @@ defmodule UeberauthOidcc.Request do
     redirect_params = %{
       response_type: opts.response_type,
       redirect_uri: opts.redirect_uri,
-      state: with_state_param([], conn)[:state],
+      state: state,
       pkce_verifier: pkce_verifier,
       nonce: url_encode64(:crypto.hash(:sha256, raw_nonce)),
       scopes: opts.scopes
@@ -56,7 +59,8 @@ defmodule UeberauthOidcc.Request do
       {:ok, uri} ->
         conn =
           conn
-          |> put_session(opts.session_key, %{
+          |> Session.put(opts, %{
+            state: state,
             raw_nonce: raw_nonce,
             pkce_verifier: pkce_verifier,
             redirect_uri: opts.redirect_uri,

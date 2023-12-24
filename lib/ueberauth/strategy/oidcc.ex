@@ -7,7 +7,8 @@ defmodule Ueberauth.Strategy.Oidcc do
 
   See `UeberauthOidcc.Config` for other configuration.
   """
-  use Ueberauth.Strategy
+  use Ueberauth.Strategy,
+    ignores_csrf_attack: true
 
   import Ueberauth.Strategy.Helpers
 

@@ -4,9 +4,8 @@ defmodule UeberauthOidcc.Callback do
   """
 
   alias UeberauthOidcc.Config
+  alias UeberauthOidcc.Session
   import UeberauthOidcc.Helpers
-
-  import Plug.Conn, only: [get_session: 2, delete_session: 2]
 
   import Ueberauth.Strategy.Helpers, only: [callback_url: 1]
 
@@ -25,14 +24,14 @@ defmodule UeberauthOidcc.Callback do
           | {:error, Plug.Conn.t(), term}
   def handle_callback(opts, conn)
 
-  def handle_callback(opts, %{params: %{"code" => code}} = conn) when is_binary(code) do
+  def handle_callback(opts, %{params: %{"code" => code} = params} = conn) when is_binary(code) do
     opts =
       Config.default()
       |> Map.merge(Map.new(opts))
       |> opts_with_refresh()
 
-    session = get_session(conn, opts.session_key) || %{}
-    conn = delete_session(conn, opts.session_key)
+    session = Session.get(conn, opts)
+    conn = Session.delete(conn, opts)
 
     userinfo? = opts.userinfo
 
@@ -55,13 +54,14 @@ defmodule UeberauthOidcc.Callback do
     provider_overrides = Map.take(opts, [:token_endpoint])
 
     maybe_token =
-      with :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
+      with :ok <- validate_state(Map.get(session, :state), params["state"]),
+           :ok <- validate_redirect_uri(Map.get(session, :redirect_uri, :any), conn),
            {:ok, client_context} <- client_context(opts, provider_overrides),
            {:ok, token} <-
              apply_oidcc(opts, [Token], :retrieve, [
                code,
                client_context,
-               retrieve_token_params
+               Map.merge(opts, retrieve_token_params)
              ]) do
         {:ok, token}
       else
@@ -86,9 +86,23 @@ defmodule UeberauthOidcc.Callback do
 
   def handle_callback(opts, conn) do
     opts = Map.merge(Config.default(), Map.new(opts))
-    conn = delete_session(conn, opts.session_key)
+    conn = Session.delete(conn, opts)
 
     {:error, conn, :missing_code}
+  end
+
+  # https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+  # > state
+  # > RECOMMENDED. Opaque value used to maintain state between the request and
+  # > the callback. Typically, Cross-Site Request Forgery (CSRF, XSRF)
+  # > mitigation is done by cryptographically binding the value of this
+  # > parameter with a browser cookie.
+  defp validate_state(state, state) do
+    :ok
+  end
+
+  defp validate_state(_, _) do
+    {:error, :invalid_state}
   end
 
   # https://openid.net/specs/openid-financial-api-part-1-1_0.html#public-client
