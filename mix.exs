@@ -21,6 +21,7 @@ defmodule UeberauthOidcc.MixProject do
       ],
       package: package(),
       deps: deps(),
+      dialyzer: dialyzer(),
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
@@ -77,6 +78,17 @@ defmodule UeberauthOidcc.MixProject do
 
       true ->
         {:oidcc, "~> 3.1.1"}
+    end
+  end
+
+  defp dialyzer do
+    if System.get_env("CI") do
+      [
+        plt_local_path: "_build/dialyzer",
+        plt_core_path: "_build/dialyzer"
+      ]
+    else
+      []
     end
   end
 end
