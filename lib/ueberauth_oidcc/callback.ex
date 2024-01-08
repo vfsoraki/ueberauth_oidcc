@@ -49,15 +49,11 @@ defmodule UeberauthOidcc.Callback do
         :error -> :any
       end
 
-    retrieve_token_params =
-      Map.merge(
-        opts,
-        %{
-          nonce: nonce,
-          pkce_verifier: Map.get(session, :pkce_verifier, :none),
-          redirect_uri: callback_url(conn)
-        }
-      )
+    retrieve_token_params = %{
+      nonce: nonce,
+      pkce_verifier: Map.get(session, :pkce_verifier, :none),
+      redirect_uri: callback_url(conn)
+    }
 
     provider_overrides = Map.take(opts, [:token_endpoint])
 
