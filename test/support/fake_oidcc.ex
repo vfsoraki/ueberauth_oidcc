@@ -119,16 +119,13 @@ defmodule FakeOidcc do
         Oidcc.ClientContext.from_manual(
           %Oidcc.ProviderConfiguration{
             issuer: "https://issuer.example",
-            authorization_endpoint: FakeOidcc.request_url()
+            authorization_endpoint: FakeOidcc.request_url(),
+            authorization_response_iss_parameter_supported: true
           },
           JOSE.JWK.generate_key({:oct, 8}),
           client_id,
           client_secret
         )
-
-      # TODO put this in the struct once it's in an Oidcc release
-      provider_configuration =
-        Map.put(provider_configuration, :authorization_response_iss_parameter_supported, true)
 
       {:ok, %{client_context | provider_configuration: provider_configuration}}
     end
