@@ -13,6 +13,9 @@ BREAKING CHANGE: the API for `UeberauthOidcc.Callback.handle_callback/2`
 has changed to make the 4th item in the tuple a map, rather than only
 the userinfo claims.
 
+BREAKING CHANGE: if you're using `module` for testing, you'll need to implement
+the `TokenIntrospection` sub-module.
+
 ## v0.3.1 - 2023-12-10
 
 - fix: refresh JWKs if needed (#5)
