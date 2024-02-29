@@ -16,7 +16,7 @@ The package can be installed by adding `ueberauth_oidcc` to your list of depende
 ```elixir
 def deps do
   [
-    {:ueberauth_oidcc, "~> 0.2.0"}
+    {:ueberauth_oidcc, "~> 0.3"}
   ]
 end
 ```
