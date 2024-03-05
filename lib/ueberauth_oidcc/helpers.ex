@@ -29,7 +29,7 @@ defmodule UeberauthOidcc.Helpers do
              opts.client_secret,
              opts
            ]),
-         {:ok, client_context, opts} <- maybe_apply_profiles(client_context, opts) do
+         {:ok, client_context, opts} <- Oidcc.ClientContext.apply_profiles(client_context, opts) do
       client_context = %{
         client_context
         | provider_configuration:
@@ -61,21 +61,5 @@ defmodule UeberauthOidcc.Helpers do
   @doc false
   def url_encode64(bytes) do
     Base.url_encode64(bytes, padding: false)
-  end
-
-  Code.ensure_loaded!(Oidcc.ClientContext)
-
-  if function_exported?(Oidcc.ClientContext, :apply_profiles, 2) do
-    defdelegate maybe_apply_profiles(client_context, opts),
-      to: Oidcc.ClientContext,
-      as: :apply_profiles
-  else
-    def maybe_apply_profiles(_client_context, %{profiles: _}) do
-      {:error, :profiles_not_supported}
-    end
-
-    def maybe_apply_profiles(client_context, opts) do
-      {:ok, client_context, opts}
-    end
   end
 end

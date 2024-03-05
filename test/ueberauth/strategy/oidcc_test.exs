@@ -16,13 +16,6 @@ defmodule Ueberauth.Strategy.OidccTest do
 
   Code.ensure_loaded(Oidcc.Token)
 
-  jarm_tag =
-    if function_exported?(Oidcc.Token, :validate_jarm, 3) do
-      :jarm
-    else
-      [skip: "JARM not implemented"]
-    end
-
   describe "Oidcc Strategy" do
     setup do
       conn = init_test_session(conn(:get, "/auth/provider"), %{})
@@ -81,7 +74,6 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = query
     end
 
-    @tag jarm_tag
     test "Oidcc requests use `jwt` if supported", %{conn: conn} do
       options =
         Keyword.merge(
@@ -104,7 +96,6 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = query
     end
 
-    @tag jarm_tag
     test "Oidcc requests use `form_post.jwt` if supported and callback_methods include POST", %{
       conn: conn
     } do
@@ -450,7 +441,6 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = error
     end
 
-    @tag jarm_tag
     test "Handle callback from provider with a valid JARM response", %{conn: conn} do
       options = Keyword.put(@default_options, :issuer, :fake_issuer_with_jwt)
       conn = run_request_and_callback(conn, options: options, code: {:jarm, "jarm_response"})
@@ -458,7 +448,6 @@ defmodule Ueberauth.Strategy.OidccTest do
       assert %Ueberauth.Auth{} = conn.assigns.ueberauth_auth
     end
 
-    @tag jarm_tag
     test "Handle callback from provider with an invalid JARM response", %{conn: conn} do
       options = Keyword.put(@default_options, :issuer, :fake_issuer_with_jwt)
       conn = run_request_and_callback(conn, options: options, code: {:jarm, "invalid_response"})

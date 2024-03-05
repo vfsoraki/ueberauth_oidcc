@@ -114,38 +114,24 @@ defmodule UeberauthOidcc.Request do
     end
   end
 
-  Code.ensure_loaded(Oidcc.Token)
+  defp response_mode(response_modes_supported, opts) do
+    supports_post? = "POST" in Map.get(opts, :callback_methods, [])
 
-  if function_exported?(Oidcc.Token, :validate_jarm, 3) do
-    defp response_mode(response_modes_supported, opts) do
-      supports_post? = "POST" in Map.get(opts, :callback_methods, [])
+    cond do
+      supports_post? and "form_post.jwt" in response_modes_supported ->
+        "form_post.jwt"
 
-      cond do
-        supports_post? and "form_post.jwt" in response_modes_supported ->
-          "form_post.jwt"
+      "query.jwt" in response_modes_supported ->
+        "query.jwt"
 
-        "query.jwt" in response_modes_supported ->
-          "query.jwt"
+      "jwt" in response_modes_supported ->
+        "jwt"
 
-        "jwt" in response_modes_supported ->
-          "jwt"
-
-        supports_post? and "form_post" in response_modes_supported ->
-          "form_post"
-
-        true ->
-          "query"
-      end
-    end
-  else
-    defp response_mode(response_modes_supported, opts) do
-      supports_post? = "POST" in Map.get(opts, :callback_methods, [])
-
-      if supports_post? and "form_post" in response_modes_supported do
+      supports_post? and "form_post" in response_modes_supported ->
         "form_post"
-      else
+
+      true ->
         "query"
-      end
     end
   end
 end
