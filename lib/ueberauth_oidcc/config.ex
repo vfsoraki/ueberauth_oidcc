@@ -39,6 +39,7 @@ defmodule UeberauthOidcc.Config do
           optional(:scopes) => :oidcc_scope.scopes(),
           optional(:session_key) => binary(),
           optional(:authorization_params) => Enumerable.t(),
+          optional(:authorization_params_passthrough) => Enumerable.t(),
           optional(:authorization_endpoint) => binary(),
           # callback
           optional(:token_endpoint) => binary(),

@@ -57,6 +57,7 @@ config :ueberauth, Ueberauth,
       validate_scopes: true, # whether to validate the returned scopes are a subset of those request, default: false
       uid_field: "email", # pulled from the merge of the claims and userinfo (if fetched), default: sub
       authorization_params: %{}, # additional parameters for the authorization request
+      authorization_params_passthrough: [], # params to pass through from the incoming request (such as "prompt")
       authorization_endpoint: "https://oidc-override/request" # override the initial request URI
     }
   ]

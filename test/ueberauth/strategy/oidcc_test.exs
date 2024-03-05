@@ -71,6 +71,44 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = query
     end
 
+    test "can pass through query parameters if specified", %{conn: conn} do
+      options = Keyword.put(@default_options, :authorization_params_passthrough, ~w(prompt))
+      conn = %{conn | params: %{"prompt" => "login", "additional" => "ignored"}}
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
+
+      assert {302, _headers, _body} = sent_resp(conn)
+
+      [location] = get_resp_header(conn, "location")
+      query = URI.decode_query(URI.parse(location).query)
+
+      assert %{
+               "prompt" => "login"
+             } = query
+
+      refute Map.has_key?(query, "additional")
+    end
+
+    test "pass through parameters override specified parameters", %{conn: conn} do
+      options =
+        Keyword.merge(@default_options,
+          authorization_params_passthrough: ~w(prompt),
+          authorization_params: %{prompt: "login", kept: "value"}
+        )
+
+      conn = %{conn | params: %{"prompt" => "create"}}
+      conn = Ueberauth.run_request(conn, :provider, {Strategy, options})
+
+      assert {302, _headers, _body} = sent_resp(conn)
+
+      [location] = get_resp_header(conn, "location")
+      query = URI.decode_query(URI.parse(location).query)
+
+      assert %{
+               "prompt" => "create",
+               "kept" => "value"
+             } = query
+    end
+
     test "Handles an error in an Oidcc request (invalid issuer)", %{conn: conn} do
       options = Keyword.merge(@default_options, issuer: :not_valid)
       conn = Ueberauth.run_request(conn, :provider, {Strategy, options})

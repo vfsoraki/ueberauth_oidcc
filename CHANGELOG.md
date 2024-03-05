@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.2 - 2024-03-06
+
+This release includes some features/fixes backported from the 0.4.x series.
+
+- feat: store session data in a separate UeberauthOidcc cookie
+- feat: include config `authorization_params_passthrough` to optionally copy incoming parameters
+- fix: support multiple issuers
+- fix: limit `nonce` to 43 characters
+
 ## v0.3.1 - 2023-12-10
 
 - fix: refresh JWKs if needed (#5)
