@@ -26,6 +26,7 @@ defmodule UeberauthOidcc.Request do
       Config.default()
       |> Map.merge(Map.new(opts))
       |> opts_with_refresh()
+      |> opts_with_passthrough(conn)
       |> Map.put_new(:callback_path, callback_path(conn))
       |> Map.put_new(:redirect_uri, callback_url(conn))
 
@@ -100,6 +101,27 @@ defmodule UeberauthOidcc.Request do
            ]) do
       {:ok, uri, response_mode}
     end
+  end
+
+  defp opts_with_passthrough(%{authorization_params_passthrough: param_names} = opts, %Plug.Conn{
+         params: params
+       }) do
+    passthrough_params =
+      for key <- param_names,
+          key = to_string(key),
+          value <- List.wrap(Map.get(params, key)),
+          into: %{} do
+        {key, value}
+      end
+
+    existing_authorization_params = Map.get(opts, :authorization_params, %{})
+    authorization_params = Map.merge(existing_authorization_params, passthrough_params)
+
+    Map.put(opts, :authorization_params, authorization_params)
+  end
+
+  defp opts_with_passthrough(opts, _conn) do
+    opts
   end
 
   defp to_url_extension(enum) do
