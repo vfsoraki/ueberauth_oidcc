@@ -15,7 +15,8 @@ defmodule UeberauthOidcc.Config do
   __Optional__:
   - session_key: area of the Plug session to store data between the request and callback (default: "ueberauth_strategy_oidcc")
   - scopes: list of scopes to request (default: ["openid"])
-  - authorization_params: additional parameters to pass in the query to the authorization_endpoint
+  - authorization_params: map of additional parameters to pass in the query to the authorization_endpoint
+  - authorization_params_passthrough: list of params which can be passed through from the initial request
   - authorization_endpoint: override the authorization_endpoint defined by the issuer
   - token_endpoint: override the token_endpoint defined by the issuer
   - userinfo: whether to request the userinfo endpoint (default: false)
