@@ -19,7 +19,7 @@ defmodule UeberauthOidcc.Session do
       conn,
       cookie_name(conn.scheme, opts.session_cookie),
       value,
-      cookie_opts(opts)
+      cookie_opts(conn.scheme, opts)
     )
   end
 
@@ -41,7 +41,7 @@ defmodule UeberauthOidcc.Session do
     Conn.delete_resp_cookie(
       conn,
       cookie_name(conn.scheme, opts.session_cookie),
-      cookie_opts(opts)
+      cookie_opts(conn.scheme, opts)
     )
   end
 
@@ -56,10 +56,12 @@ defmodule UeberauthOidcc.Session do
     session_cookie
   end
 
-  defp cookie_opts(opts) do
+  defp cookie_opts(scheme, opts) do
     cookie_opts = [
       max_age: opts.session_max_age,
-      http_only: true
+      http_only: true,
+      same_site: opts.session_same_site,
+      secure: scheme == :https
     ]
 
     case opts do
