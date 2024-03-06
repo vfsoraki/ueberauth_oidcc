@@ -4,11 +4,7 @@
 
 - feat!: add `introspection` opt for fetching Token Introspection
 - feat: support [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/oauth-v2-jarm-final.html)
-- feat: store session data in a separate UeberauthOidcc cookie
-- feat: include config `authorization_params_passthrough` to optionally copy incoming parameters
-- fix: support multiple issuers
 - fix: use `client_secret` when generating request URLs
-- fix: limit `nonce` to 43 characters
 
 BREAKING CHANGE: the API for `UeberauthOidcc.Callback.handle_callback/2`
 has changed to make the 4th item in the tuple a map, rather than only
@@ -16,6 +12,15 @@ the userinfo claims.
 
 BREAKING CHANGE: if you're using `module` for testing, you'll need to implement
 the `TokenIntrospection` sub-module.
+
+## v0.3.2 - 2024-03-06
+
+This release includes some features/fixes backported from the 0.4.x-pre series.
+
+- feat: store session data in a separate UeberauthOidcc cookie
+- feat: include config `authorization_params_passthrough` to optionally copy incoming parameters
+- fix: support multiple issuers
+- fix: limit `nonce` to 43 characters
 
 ## v0.3.1 - 2023-12-10
 
