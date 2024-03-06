@@ -1,6 +1,8 @@
 defmodule UeberauthOidcc.Config do
   @moduledoc """
   Functions for managing the configuration passed to request/callback modules.
+
+  See `t:t/0` for the supported values.
   """
 
   @typedoc """
@@ -13,22 +15,28 @@ defmodule UeberauthOidcc.Config do
   - redirect_uri: the full URI to redirect back to after authentication
 
   __Optional__:
-  - session_key: area of the Plug session to store data between the request and callback (default: "ueberauth_strategy_oidcc")
-  - scopes: list of scopes to request (default: ["openid"])
+  - session_cookie: name of cookie used store data between the request and callback (default: `"_ueberauth_strategy_oidcc"`)
+  - session_key: secret name to use with `Plug.Crypto.encrypt/4` (default: `"ueberauth_strategy_oidcc"`)
+  - session_max_age: maximum number of seconds allowed between the request and callback (default: `3600`)
+  - session_same_site: SameSite value to use for the session cookie (default: `"Lax"`)
+  - scopes: list of scopes to request (default: `["openid"]`)
   - authorization_params: map of additional parameters to pass in the query to the authorization_endpoint
   - authorization_params_passthrough: list of params which can be passed through from the initial request
   - authorization_endpoint: override the authorization_endpoint defined by the issuer
   - token_endpoint: override the token_endpoint defined by the issuer
-  - userinfo: whether to request the userinfo endpoint (default: false)
+  - userinfo: whether to request the userinfo endpoint (default: `false`)
   - userinfo_endpoint: override the userinfo_endpoint defined by the issuer
-  - validate_scopes: whether to validate that the returned scopes are a subset of the requested scopes (default: false)
+  - validate_scopes: whether to validate that the returned scopes are a subset of the requested scopes (default: `false`)
+
+  The `session_cookie` name will also be prefixed with `__Secure-` if the
+  request comes over HTTPS to ensure that browsers only send it securely.
 
   You can also give any options taken by the `Oidcc.create_redirect_url/4` or
   `Oidcc.retrieve_token/5` functions.
 
   For testing:
-  - module: (default: Oidcc)
-  - response_type: (default:"code")
+  - module: (default: `Oidcc`)
+  - response_type: (default: `"code"`)
   """
   @type t() :: %{
           # required
@@ -38,6 +46,7 @@ defmodule UeberauthOidcc.Config do
           required(:redirect_uri) => binary(),
           # authorization
           optional(:session_cookie) => binary(),
+          optional(:session_key) => binary(),
           optional(:session_max_age) => pos_integer(),
           optional(:session_same_site) => binary(),
           optional(:scopes) => :oidcc_scope.scopes(),
