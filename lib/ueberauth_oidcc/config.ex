@@ -37,8 +37,10 @@ defmodule UeberauthOidcc.Config do
           required(:client_secret) => binary(),
           required(:redirect_uri) => binary(),
           # authorization
+          optional(:session_cookie) => binary(),
+          optional(:session_max_age) => pos_integer(),
+          optional(:session_same_site) => binary(),
           optional(:scopes) => :oidcc_scope.scopes(),
-          optional(:session_key) => binary(),
           optional(:authorization_params) => Enumerable.t(),
           optional(:authorization_params_passthrough) => Enumerable.t(),
           optional(:authorization_endpoint) => binary(),
@@ -69,7 +71,8 @@ defmodule UeberauthOidcc.Config do
       validate_scopes: false,
       session_key: "ueberauth_strategy_oidcc",
       session_cookie: "_ueberauth_strategy_oidcc",
-      session_max_age: 3600
+      session_max_age: 3600,
+      session_same_site: "Lax"
     }
   end
 
