@@ -7,7 +7,7 @@ defmodule UeberauthOidcc.Callback do
   alias UeberauthOidcc.Session
   import UeberauthOidcc.Helpers
 
-  import Ueberauth.Strategy.Helpers, only: [callback_url: 1]
+  import Ueberauth.Strategy.Helpers, only: [callback_path: 1, callback_url: 1]
 
   @doc """
   Support implementation of `c:Ueberauth.Strategy.handle_callback!/1`
@@ -31,6 +31,8 @@ defmodule UeberauthOidcc.Callback do
       Config.default()
       |> Map.merge(Map.new(opts))
       |> opts_with_refresh()
+      |> Map.put_new(:callback_path, callback_path(conn))
+      |> Map.put_new(:redirect_uri, callback_url(conn))
 
     session = Session.get(conn, opts)
     conn = Session.delete(conn, opts)
@@ -52,7 +54,7 @@ defmodule UeberauthOidcc.Callback do
     retrieve_token_params = %{
       nonce: nonce,
       pkce_verifier: Map.get(session, :pkce_verifier, :none),
-      redirect_uri: callback_url(conn)
+      redirect_uri: opts.redirect_uri
     }
 
     provider_overrides = Map.take(opts, [:token_endpoint])
