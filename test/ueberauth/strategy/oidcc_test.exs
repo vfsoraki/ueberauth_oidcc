@@ -349,6 +349,17 @@ defmodule Ueberauth.Strategy.OidccTest do
              } = conn.assigns.ueberauth_auth
     end
 
+    test "Handle callback clears the session cookie", %{conn: conn} do
+      {request_conn, conn} = run_request_and_callback(conn, return_request_conn: true)
+      cookie = "_ueberauth_strategy_oidcc"
+      refute Map.has_key?(conn.resp_cookies[cookie], :value)
+
+      request_keys = Map.keys(request_conn.resp_cookies[cookie]) -- [:value]
+      cleared_keys = Map.keys(conn.resp_cookies[cookie]) -- [:universal_time]
+      # make sure we're setting all the same cookie parameters when clearing
+      assert request_keys == cleared_keys
+    end
+
     test "Handle callback from provider with a missing code", %{conn: conn} do
       conn = run_request_and_callback(conn, code: nil)
 
