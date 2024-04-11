@@ -77,7 +77,7 @@ defmodule UeberauthOidcc.MixProject do
         {:oidcc, github: "erlef/oidcc", ref: ref}
 
       true ->
-        {:oidcc, "~> 3.1.1"}
+        {:oidcc, "~> 3.1.2"}
     end
   end
 
