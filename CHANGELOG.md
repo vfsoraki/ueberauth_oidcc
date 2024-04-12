@@ -1,5 +1,10 @@
 # Changelog
 
+
+## v0.3.3 - 2024-04-20
+
+- fix(session): ensure that we clear the session cookie
+
 ## v0.3.2 - 2024-03-06
 
 This release includes some features/fixes backported from the 0.4.x series.
