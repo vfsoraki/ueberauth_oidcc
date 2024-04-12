@@ -5,7 +5,10 @@ defmodule UeberauthOidcc.SessionTest do
 
   alias UeberauthOidcc.Session
 
-  @default_opts UeberauthOidcc.Config.default()
+  @default_opts Map.merge(
+                  UeberauthOidcc.Config.default(),
+                  %{callback_path: "/"}
+                )
 
   setup do
     conn =

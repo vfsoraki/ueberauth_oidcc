@@ -87,7 +87,11 @@ defmodule UeberauthOidcc.Callback do
   end
 
   def handle_callback(opts, conn) do
-    opts = Map.merge(Config.default(), Map.new(opts))
+    opts =
+      Config.default()
+      |> Map.merge(Map.new(opts))
+      |> Map.put_new(:callback_path, callback_path(conn))
+
     conn = Session.delete(conn, opts)
 
     {:error, conn, :missing_code}

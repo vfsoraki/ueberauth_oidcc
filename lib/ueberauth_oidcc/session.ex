@@ -57,19 +57,12 @@ defmodule UeberauthOidcc.Session do
   end
 
   defp cookie_opts(scheme, opts) do
-    cookie_opts = [
+    [
+      path: opts.callback_path,
       max_age: opts.session_max_age,
       http_only: true,
       same_site: opts.session_same_site,
       secure: scheme == :https
     ]
-
-    case opts do
-      %{callback_path: path} ->
-        [path: path] ++ cookie_opts
-
-      _ ->
-        cookie_opts
-    end
   end
 end
