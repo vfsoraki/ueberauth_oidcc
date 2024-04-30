@@ -8,6 +8,7 @@ defmodule UeberauthOidcc.Application do
     children =
       for child_opts <- Application.get_env(:ueberauth_oidcc, :issuers) || [] do
         name = Map.fetch!(child_opts, :name)
+        child_opts = Map.put_new(child_opts, :backoff_type, :random)
         Supervisor.child_spec({Oidcc.ProviderConfiguration.Worker, child_opts}, id: name)
       end
 

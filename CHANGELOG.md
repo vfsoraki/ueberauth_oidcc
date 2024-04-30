@@ -4,6 +4,7 @@
 
 - feat!: add `introspection` opt for fetching Token Introspection
 - feat: support [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/oauth-v2-jarm-final.html)
+- feat: default to `:random` backoff for issuers
 - fix: use `client_secret` when generating request URLs
 
 BREAKING CHANGE: the API for `UeberauthOidcc.Callback.handle_callback/2`
