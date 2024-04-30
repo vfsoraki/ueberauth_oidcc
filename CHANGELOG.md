@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.4.0 - TBD
+## v0.4.0 - 2024-04-30
 
 - feat!: add `introspection` opt for fetching Token Introspection
 - feat: support [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/oauth-v2-jarm-final.html)
