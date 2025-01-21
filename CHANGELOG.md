@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.1 - 2025-01-21
+
+- fix: handle errors returned via JARM
+
 ## v0.4.0 - 2024-04-30
 
 - feat!: add `introspection` opt for fetching Token Introspection
