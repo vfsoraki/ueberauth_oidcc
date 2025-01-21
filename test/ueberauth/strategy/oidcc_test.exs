@@ -497,6 +497,18 @@ defmodule Ueberauth.Strategy.OidccTest do
       assert %Ueberauth.Auth{} = conn.assigns.ueberauth_auth
     end
 
+    test "Handle callback from provider with a valid JARM error", %{conn: conn} do
+      options = Keyword.put(@default_options, :issuer, :fake_issuer_with_jwt)
+      conn = run_request_and_callback(conn, options: options, code: {:jarm, "jarm_error"})
+
+      [error | _] = conn.assigns.ueberauth_failure.errors
+
+      assert %Ueberauth.Failure.Error{
+               message_key: "access_denied",
+               message: "authentication_expired"
+             } = error
+    end
+
     test "Handle callback from provider with an invalid JARM response", %{conn: conn} do
       options = Keyword.put(@default_options, :issuer, :fake_issuer_with_jwt)
       conn = run_request_and_callback(conn, options: options, code: {:jarm, "invalid_response"})

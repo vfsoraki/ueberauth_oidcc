@@ -316,6 +316,22 @@ defmodule FakeOidcc do
       {:ok, %{"code" => FakeOidcc.callback_code(), "state" => state}}
     end
 
+    def validate_jarm(
+          "jarm_error" <> state,
+          %Oidcc.ClientContext{
+            client_id: "oidc_client",
+            provider_configuration: %Oidcc.ProviderConfiguration{issuer: "https://issuer.example"}
+          },
+          _opts
+        ) do
+      {:ok,
+       %{
+         "error" => "access_denied",
+         "error_description" => "authentication_expired",
+         "state" => state
+       }}
+    end
+
     def validate_jarm(_response, _client_context, _opts) do
       {:error, :token_expired}
     end

@@ -95,11 +95,15 @@ defmodule UeberauthOidcc.Callback do
   end
 
   defp claims_from_params(%{"response" => jarm_response}, client_context, opts) do
-    apply_oidcc(opts, [Token], :validate_jarm, [
-      jarm_response,
-      client_context,
-      opts
-    ])
+    case apply_oidcc(opts, [Token], :validate_jarm, [
+           jarm_response,
+           client_context,
+           opts
+         ]) do
+      {:ok, %{"code" => _code}} = response -> response
+      {:ok, params} -> {:error, {:jarm_error, params}}
+      {:error, _} = error -> error
+    end
   end
 
   defp claims_from_params(_params, _client_context, _opts) do

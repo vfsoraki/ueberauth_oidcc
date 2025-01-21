@@ -111,6 +111,16 @@ defmodule UeberauthOidcc.Error do
     )
   end
 
+  def describe_error({:jarm_error, %{"error" => error} = body}, _key) do
+    # https://openid.net/specs/oauth-v2-jarm.html#name-example-response-type-code
+    description = Map.get(body, "error_description", "")
+
+    error(
+      error,
+      description
+    )
+  end
+
   def describe_error({:use_dpop_nonce, nonce, _}, _key) do
     error(
       "use_dpop_nonce",
