@@ -48,6 +48,8 @@ include:
       - IMAGE: 1.15.7-erlang-26.1.2-ubuntu-jammy-20230126
         OIDCC_REF: main
       - IMAGE: 1.16.2-erlang-26.2.4-ubuntu-jammy-20240405
+      - IMAGE: 1.17.3-erlang-27.2-ubuntu-jammy-20240808
+      - IMAGE: 1.18.1-erlang-27.2-ubuntu-jammy-20240808
 
 dev:
   stage: test

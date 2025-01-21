@@ -4,6 +4,7 @@
 
 - fix: handle errors returned via JARM
 - chore: update `oidcc` to 3.2.6
+- add support for Elixir 1.18
 
 ## v0.4.0 - 2024-04-30
 

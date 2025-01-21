@@ -29,6 +29,7 @@ defmodule UeberauthOidcc.Helpers do
              opts.client_secret,
              opts
            ]),
+         opts = Map.drop(opts, ~w[issuer client_id client_secret]a),
          {:ok, client_context, opts} <- Oidcc.ClientContext.apply_profiles(client_context, opts) do
       client_context = %{
         client_context
