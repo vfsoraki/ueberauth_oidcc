@@ -3,6 +3,7 @@
 ## v0.4.1 - 2025-01-21
 
 - fix: handle errors returned via JARM
+- chore: update `oidcc` to 3.2.6
 
 ## v0.4.0 - 2024-04-30
 
