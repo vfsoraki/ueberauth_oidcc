@@ -45,14 +45,16 @@ defmodule UeberauthOidcc.Callback do
   defp retrieve_token(conn, session, opts) do
     userinfo? = opts.userinfo
 
-    nonce =
-      case Map.fetch(session, :raw_nonce) do
-        {:ok, raw_nonce} -> url_encode64(:crypto.hash(:sha256, raw_nonce))
-        :error -> :any
-      end
+    # For some reason, LinkedIn doesn't return a nonce in response.
+    # This is NOT the way to fix it, but for testing purposes this is OK.
+    # nonce =
+    #   case Map.fetch(session, :raw_nonce) do
+    #     {:ok, raw_nonce} -> url_encode64(:crypto.hash(:sha256, raw_nonce))
+    #     :error -> :any
+    #   end
 
     retrieve_token_params = %{
-      nonce: nonce,
+      # nonce: nonce,
       pkce_verifier: Map.get(session, :pkce_verifier, :none),
       redirect_uri: opts.redirect_uri
     }
