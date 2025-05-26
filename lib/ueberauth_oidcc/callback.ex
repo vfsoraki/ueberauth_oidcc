@@ -217,13 +217,15 @@ defmodule UeberauthOidcc.Callback do
   end
 
   defp validate_redirect_uri(uri, conn) do
+    %URI{host: expected_host, path: expected_path} = URI.parse(uri)
+
     # generate the current URL but without the query string parameters
-    case Plug.Conn.request_url(%{conn | query_string: ""}) do
-      ^uri ->
+    case %{conn | query_string: ""} |> Plug.Conn.request_url() |> URI.parse()  do
+      %URI{host: ^expected_host, path: ^expected_path} ->
         :ok
 
       actual_uri ->
-        {:error, {:invalid_redirect_uri, actual_uri}}
+        {:error, {:invalid_redirect_uri, URI.to_string(actual_uri)}}
     end
   end
 
